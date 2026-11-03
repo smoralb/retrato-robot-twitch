@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retrato Robot · Twitch</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="stamp">Brigada de Delitos en el Chat</p>
+      <h1>RETRATO ROBOT</h1>
+      <p class="sub">Reconstruimos tu cara a partir de lo que escribes en Twitch.</p>
+    </header>
+
+    <!-- 1. Login -->
+    <section id="screen-login" class="screen">
+      <div class="card">
+        <p>Inicia sesión con Twitch. Leeremos tu perfil, los canales que sigues y los
+          mensajes que hayas escrito en los canales que aparecen en el archivo público
+          de logs <a href="https://logs.ivr.fi" target="_blank" rel="noopener">logs.ivr.fi</a>.</p>
+        <button id="btn-login" class="btn twitch">Entrar con Twitch</button>
+        <p class="small">Todo se procesa en tu navegador. No guardamos nada.</p>
+        <div id="config-warning" class="warn" hidden>
+          <strong>Falta el Client ID de Twitch.</strong>
+          <ol>
+            <li>Entra en <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noopener">dev.twitch.tv/console/apps</a> → <em>Register Your Application</em>.</li>
+            <li>OAuth Redirect URL: <code id="redirect-hint"></code> · Category: Website Integration · Client Type: Public.</li>
+            <li>Copia el <em>Client ID</em> en <code>js/config.js</code> y recarga la página.</li>
+          </ol>
+          Mientras tanto puedes probar el ejemplo.
+        </div>
+        <button id="btn-demo" class="btn ghost">Ver un ejemplo sin iniciar sesión</button>
+      </div>
+    </section>
+
+    <!-- 2. Cargando -->
+    <section id="screen-loading" class="screen" hidden>
+      <div class="card terminal">
+        <pre id="log"></pre>
+      </div>
+    </section>
+
+    <!-- 2b. Sin mensajes: pegar a mano -->
+    <section id="screen-paste" class="screen" hidden>
+      <div class="card">
+        <p><strong>No hemos encontrado mensajes tuyos en el archivo de logs.</strong>
+          Twitch no permite descargar el historial de chat, así que puedes pegar mensajes a mano
+          (uno por línea, o el formato <code>[2024-05-01 21:03:11] #canal usuario: mensaje</code>)
+          o seguir solo con tu perfil y los canales que sigues.</p>
+        <textarea id="paste" rows="10" placeholder="pega aquí tus mensajes…"></textarea>
+        <div class="row">
+          <button id="btn-paste" class="btn">Analizar mensajes pegados</button>
+          <button id="btn-skip" class="btn ghost">Seguir sin mensajes</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Resultado -->
+    <section id="screen-result" class="screen" hidden>
+      <article class="file">
+        <div class="file-head">
+          <span>EXPEDIENTE Nº <b id="case-no"></b></span>
+          <span class="wanted">SE BUSCA</span>
+        </div>
+        <div class="file-body">
+          <figure class="sketch">
+            <pre id="portrait"></pre>
+            <figcaption>Retrato elaborado a partir de <b id="msg-count"></b> testimonios escritos</figcaption>
+          </figure>
+          <dl class="facts">
+            <dt>Alias</dt><dd id="f-alias"></dd>
+            <dt>Edad estimada</dt><dd id="f-age"></dd>
+            <dt>Situación laboral</dt><dd id="f-job"></dd>
+            <dt>Posible origen</dt><dd id="f-origin"></dd>
+            <dt>Antigüedad en Twitch</dt><dd id="f-account"></dd>
+            <dt>Zonas que frecuenta</dt><dd id="f-games"></dd>
+            <dt>Peligrosidad</dt><dd><div class="meter"><span id="f-danger-bar"></span></div><span id="f-danger"></span></dd>
+          </dl>
+        </div>
+        <div class="file-cols">
+          <div>
+            <h3>Rasgos de comportamiento</h3>
+            <ul id="f-traits"></ul>
+          </div>
+          <div>
+            <h3>Señas particulares</h3>
+            <ul id="f-marks"></ul>
+          </div>
+        </div>
+        <div class="file-cols">
+          <div>
+            <h3>Horario de actividad</h3>
+            <div id="f-hours" class="hours"></div>
+            <div class="hours-axis"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div>
+          </div>
+          <div>
+            <h3>Vocabulario frecuente</h3>
+            <p id="f-words" class="words"></p>
+          </div>
+        </div>
+        <p class="disclaimer">Análisis heurístico de broma, sin IA. Cualquier parecido con la realidad es pura estadística.</p>
+      </article>
+      <div class="row">
+        <button id="btn-copy" class="btn">Copiar retrato</button>
+        <button id="btn-logout" class="btn ghost">Cerrar sesión</button>
+      </div>
+    </section>
+
+    <p id="error" class="error" hidden></p>
+  </main>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
