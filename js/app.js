@@ -71,6 +71,9 @@ function render() {
     state.views = views;
   }, 50);
   $('case-no').textContent = String(profile.seed).slice(0, 6).padStart(6, '0');
+  $('wanted-stars').innerHTML = Array.from({ length: 5 }, (_, i) => (i < profile.wanted.stars ? '★' : '<span class="off">★</span>')).join('');
+  $('wanted-stars').title = `Nivel de búsqueda: ${profile.wanted.stars}/5`;
+  $('wanted-label').textContent = profile.wanted.label;
   $('msg-count').textContent = stats.messages;
   $('f-alias').textContent = user ? `${user.display_name}${user.description ? ` — “${user.description}”` : ''}` : '—';
   $('f-age').textContent = `${profile.ageRange[0]}–${profile.ageRange[1]} años${profile.ageSource ? ` (${profile.ageSource})` : ''}`;
@@ -100,21 +103,40 @@ function render() {
     bar.title = `${h}:00 — ${v} mensajes`;
     return bar;
   }));
+  $('f-evidence').replaceChildren(...stats.evidence.flatMap(({ label, value, note }) => {
+    const dt = document.createElement('dt');
+    dt.textContent = label;
+    const dd = document.createElement('dd');
+    const v = document.createElement('b');
+    v.textContent = value;
+    const small = document.createElement('small');
+    small.textContent = note;
+    dd.append(v, ' ', small);
+    return [dt, dd];
+  }));
+  if (!stats.evidence.length) $('f-evidence').textContent = 'Sin declaraciones registradas.';
   $('f-words').replaceChildren(...stats.topWords.map(([w, c]) => {
     const tag = document.createElement('span');
     tag.textContent = `${w} ×${c}`;
     return tag;
   }));
-  if (!stats.topWords.length) $('f-words').textContent = 'Sin declaraciones registradas.';
 
   state.profile = profile;
   show('result');
 }
 
+// Los elementos pueden ser texto o { text, color } para añadir una muestra del color.
 function fillList(id, items) {
   $(id).replaceChildren(...items.map((t) => {
     const li = document.createElement('li');
-    li.textContent = t;
+    li.textContent = t.text ?? t;
+    if (t.color) {
+      const swatch = document.createElement('span');
+      swatch.className = 'swatch';
+      swatch.style.background = t.color;
+      swatch.title = t.color;
+      li.append(' ', swatch);
+    }
     return li;
   }));
 }

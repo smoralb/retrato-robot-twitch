@@ -85,6 +85,11 @@ textarea { width: 100%; font: inherit; font-size: .85rem; padding: 10px; border:
   padding-bottom: 10px;
   margin-bottom: 20px;
 }
+.wanted-box { display: flex; align-items: center; gap: 18px; }
+.wanted-level { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+.stars { color: var(--red); font-size: 1.35rem; letter-spacing: .08em; font-family: 'Segoe UI Symbol', sans-serif; }
+.stars .off { color: var(--paper-dark); }
+#wanted-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .12em; opacity: .75; }
 .wanted { color: var(--red); border: 3px double var(--red); padding: 0 10px; font-weight: bold; transform: rotate(4deg); letter-spacing: .15em; }
 
 .file-body { display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: start; }
@@ -132,7 +137,12 @@ li { margin-bottom: 4px; }
 .hours { display: flex; align-items: flex-end; gap: 2px; height: 70px; }
 .hours span { flex: 1; background: var(--ink); min-height: 1px; }
 .hours-axis { display: flex; justify-content: space-between; font-size: .7rem; opacity: .6; }
-.words { line-height: 2; }
+.words { line-height: 2; margin: 10px 0 0; }
+.evidence { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: .85rem; }
+.evidence dt { font-size: .7rem; text-transform: uppercase; opacity: .65; padding-top: 2px; }
+.evidence dd { margin: 0; }
+.evidence small { display: block; opacity: .65; font-style: italic; }
+.swatch { display: inline-block; width: 1em; height: 1em; vertical-align: -2px; border: 1px solid var(--ink); }
 .words span { display: inline-block; border: 1px solid var(--ink); padding: 0 6px; margin: 0 4px 4px 0; font-size: .85rem; }
 
 .disclaimer { font-size: .7rem; opacity: .6; text-align: center; margin: 24px 0 0; }

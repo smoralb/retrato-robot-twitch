@@ -62,7 +62,13 @@
       <article class="file">
         <div class="file-head">
           <span>EXPEDIENTE Nº <b id="case-no"></b></span>
-          <span class="wanted">SE BUSCA</span>
+          <div class="wanted-box">
+            <span class="wanted">SE BUSCA</span>
+            <div class="wanted-level">
+              <span id="wanted-stars" class="stars"></span>
+              <span id="wanted-label"></span>
+            </div>
+          </div>
         </div>
         <div class="file-body">
           <figure class="sketch">
@@ -104,7 +110,8 @@
             <div class="hours-axis"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div>
           </div>
           <div>
-            <h3>Vocabulario frecuente</h3>
+            <h3>Huellas en el chat</h3>
+            <dl id="f-evidence" class="evidence"></dl>
             <p id="f-words" class="words"></p>
           </div>
         </div>

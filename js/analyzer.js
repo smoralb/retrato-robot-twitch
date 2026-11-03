@@ -64,7 +64,7 @@ const SENSITIVE_ROOTS = [
   'subnormal', 'mongol', 'autist', 'sidoso',
 ];
 const SENSITIVE_WORDS = new Set([
-  'rusia', 'russia', 'war', 'bomba', 'bombas', 'misil', 'misiles', 'isis', 'franco', 'maduro', 'petro', 'sanchez', 'ayuso',
+  'rusia', 'russia', 'iran', 'irani', 'irak', 'iraq', 'siria', 'libano', 'yemen', 'afganistan', 'atacado', 'atacados', 'war', 'bomba', 'bombas', 'misil', 'misiles', 'isis', 'franco', 'maduro', 'petro', 'sanchez', 'ayuso',
   'psoe', 'pp', 'vox', 'podemos', 'matar', 'mato', 'muerto', 'muertos', 'kill', 'rape', 'abuso', 'tumor', 'jew', 'jews',
   'moro', 'moros', 'chino', 'chinos', 'marica', 'puta', 'putas', 'zorra', 'perra',
 ]);
@@ -119,6 +119,85 @@ function criminalRecord(moderation) {
   const worst = top(byChannel, 1)[0];
   const longest = timeouts.reduce((a, m) => Math.max(a, m.seconds), 0);
   return { timeouts: timeouts.length, bans: bans.length, seconds, longest, worst, banChannels: [...new Set(bans.map((b) => b.channel))] };
+}
+
+// Colores por defecto de Twitch y, para el resto, un nombre aproximado según el tono.
+const TWITCH_COLORS = {
+  '#FF0000': 'rojo', '#0000FF': 'azul', '#008000': 'verde', '#B22222': 'rojo ladrillo', '#FF7F50': 'coral',
+  '#9ACD32': 'verde lima', '#FF4500': 'naranja rojizo', '#2E8B57': 'verde mar', '#DAA520': 'dorado',
+  '#D2691E': 'chocolate', '#5F9EA0': 'azul cadete', '#1E90FF': 'azul eléctrico', '#FF69B4': 'rosa chicle',
+  '#8A2BE2': 'violeta', '#00FF7F': 'verde primavera',
+};
+export function colorName(hex) {
+  const key = hex.toUpperCase();
+  if (TWITCH_COLORS[key]) return TWITCH_COLORS[key];
+  const n = parseInt(key.slice(1), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => c / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+  if (d < 0.12) return l > 0.85 ? 'blanco' : l < 0.15 ? 'negro' : 'gris';
+  let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  h = (h * 60 + 360) % 360;
+  const base = h < 15 ? 'rojo' : h < 40 ? 'naranja' : h < 65 ? 'amarillo' : h < 160 ? 'verde' : h < 190 ? 'turquesa' : h < 250 ? 'azul' : h < 290 ? 'morado' : h < 335 ? 'rosa' : 'rojo';
+  return l > 0.7 ? `${base} pastel` : l < 0.3 ? `${base} oscuro` : base;
+}
+
+const WEEKDAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const quote = (t, max = 70) => `“${t.length > max ? t.slice(0, max - 1) + '…' : t}”`;
+const shortDate = (d) => d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
+
+// "Huellas en el chat": datos curiosos de los mensajes, cada uno con su comentario.
+function evidence(messages, stats, allWords) {
+  const out = [];
+  const safe = messages.filter((m) => m.text && !words(m.text).some(isSensitive) && !/https?:\/\//.test(m.text));
+  if (!safe.length) return out;
+
+  const byLen = [...safe].sort((a, b) => b.text.length - a.text.length);
+  const longest = byLen[0];
+  if (longest.text.length > 25) out.push({ label: 'Declaración más extensa', value: quote(longest.text), note: `${longest.text.length} caracteres de pura literatura` });
+  const shortest = byLen[byLen.length - 1];
+  if (shortest !== longest && shortest.text.length <= 12) out.push({ label: 'Declaración más escueta', value: quote(shortest.text), note: 'Hemingway estaría orgulloso' });
+
+  const dated = safe.filter((m) => m.timestamp).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  if (dated.length && dated[0] !== longest && dated[0] !== shortest) {
+    const f = dated[0];
+    out.push({ label: 'Primera prueba registrada', value: quote(f.text, 50), note: `${shortDate(new Date(f.timestamp))}${f.channel ? ` en #${f.channel}` : ''}` });
+  }
+
+  const emotes = new Map();
+  for (const w of allWords) if (SLANG.twitch.includes(w)) emotes.set(w, (emotes.get(w) || 0) + 1);
+  const emote = top(emotes, 1)[0];
+  if (emote) out.push({ label: 'Emote de cabecera', value: emote[0].toUpperCase(), note: `usado ${emote[1]} ${emote[1] === 1 ? 'vez' : 'veces'}` });
+
+  if (stats.laugh) out.push({ label: 'Risa oficial', value: stats.laugh, note: stats.laugh === 'jsjsjs' ? 'generación Z confirmada' : stats.laugh === 'jeje' ? 'risa de tío en la cena de Navidad' : stats.laugh === 'kkkk' ? 'acento brasileño detectado' : 'clásico' });
+
+  const isLaugh = (w) => /^(?:[jh][aeiou]|js|aj|sj|x+d+|k+)+[jhsdk]?$/i.test(w) || /^(.)\1+$/.test(w);
+  const longWord = [...new Set(allWords)].filter((w) => w.length <= 25 && !/\d/.test(w) && !isSensitive(w) && !isLaugh(w)).sort((a, b) => b.length - a.length)[0];
+  if (longWord && longWord.length >= 9) out.push({ label: 'Palabra más larga', value: longWord, note: `${longWord.length} letras: alguien leyó un libro` });
+
+  if (stats.hours.some(Boolean)) {
+    const h = stats.hours.indexOf(Math.max(...stats.hours));
+    const tag = h < 6 ? 'hora de vampiros' : h < 9 ? 'antes del café' : h < 14 ? 'en horario laboral, ejem' : h < 16 ? 'sobremesa' : h < 21 ? 'prime time' : 'turno de noche';
+    out.push({ label: 'Hora punta', value: `${h}:00`, note: tag });
+    const days = new Array(7).fill(0);
+    for (const m of dated) days[new Date(m.timestamp).getDay()]++;
+    const d = days.indexOf(Math.max(...days));
+    out.push({ label: 'Día de más actividad', value: WEEKDAYS[d], note: d === 1 ? 'odia los lunes a su manera' : d === 0 || d === 6 ? 'chatero de fin de semana' : 'entre semana, como un profesional' });
+  }
+
+  const avg = Math.round(stats.avgLen);
+  out.push({ label: 'Longitud media', value: `${avg} caracteres`, note: avg < 15 ? 'telegrama' : avg < 40 ? 'tuit de 2009' : avg < 90 ? 'párrafo respetable' : 'ensayo académico' });
+
+  if (stats.capsPct >= 10) out.push({ label: 'Mensajes EN MAYÚSCULAS', value: `${Math.round(stats.capsPct)}%`, note: 'se le rompió el Bloq Mayús' });
+  if (stats.questionPct >= 10) out.push({ label: 'Preguntas', value: `${Math.round(stats.questionPct)}% de los mensajes`, note: 'casi ninguna respondida' });
+  if (stats.emojiPer100 >= 10) out.push({ label: 'Emojis', value: `${Math.round(stats.emojiPer100)} por cada 100 mensajes`, note: 'jeroglíficos modernos' });
+  return out.slice(0, 8);
+}
+
+// Nivel de búsqueda de 0 a 5 estrellas según timeouts y bans.
+const WANTED_LABELS = ['Ciudadano ejemplar', 'Vigilado', 'Sospechoso', 'Buscado', 'Muy buscado', 'Enemigo público nº 1'];
+function wantedLevel(rec) {
+  const stars = Math.min(5, rec.bans * 2 + (rec.timeouts >= 1) + (rec.timeouts >= 3) + (rec.timeouts >= 6) + (rec.timeouts >= 10) + (rec.longest >= 86400));
+  return { stars, label: WANTED_LABELS[stars] };
 }
 
 function duration(s) {
@@ -191,6 +270,8 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
     last,
     channelCount: channelFreq.size,
   };
+  stats.topWords = stats.topWords.filter(([, c]) => c > 1);
+  stats.evidence = evidence(messages, stats, allWords);
 
   // ---- Idioma y origen
   const langScores = Object.fromEntries(Object.entries(STOPWORDS).map(([k, list]) => [k, rate(list)]));
@@ -295,10 +376,10 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
   const marks = [];
   if (stats.nightPct > 20) marks.push('Ojeras de quien ve directos a las 4 a. m.');
   if (stats.laugh) marks.push(`Ríe exclusivamente en formato "${stats.laugh}"`);
-  if (stats.topWords[0]) marks.push(`Repite compulsivamente la palabra "${stats.topWords[0][0]}"`);
+  if (stats.topWords[0]?.[1] > 1) marks.push(`Repite compulsivamente la palabra "${stats.topWords[0][0]}"`);
   if (follows.length > 50 || n > 1000) marks.push('Marca de auriculares en la cabeza');
   if (stats.topChannels[0]) marks.push(`Visto con frecuencia en #${stats.topChannels[0][0]}`);
-  if (chatColor) marks.push(`Viste siempre de ${chatColor}`);
+  if (chatColor) marks.push({ text: `Viste siempre de ${colorName(chatColor)}`, color: chatColor });
   marks.unshift(...alias.marks);
   if (rec.worst && rec.worst[1] > 1) marks.push(`Fichado en #${rec.worst[0]} (${rec.worst[1]} sanciones)`);
 
@@ -316,6 +397,7 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
     alias,
     record,
     criminal: rec,
+    wanted: wantedLevel(rec),
     accountYears,
     job,
     traits,

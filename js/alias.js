@@ -121,7 +121,7 @@ export function readAlias(user, now = new Date()) {
       clues.notes.push(`"${num}" → nacido en ${clues.birthYear}`);
       break;
     }
-    const impossible = candidates.map((y) => (y > year ? `${y} (aún no ha llegado)` : year - y > MAX_AGE ? `${y} (tendría ${year - y} años)` : `${y} (tendría ${created - y} años al abrir la cuenta)`));
+    const impossible = candidates.map((y) => (y > year ? `${y} (aún no ha llegado)` : year - y > MAX_AGE ? `${y} (tendría ${year - y} años)` : `${y} (tendría ${created - y} ${created - y === 1 ? 'año' : 'años'} al abrir la cuenta)`));
     clues.jokes.push(`El "${num}" no puede ser su año de nacimiento: ${impossible.join(' ni ')}. Será su número de la suerte`);
     clues.notes.push(`"${num}" → no es un año`);
   }
