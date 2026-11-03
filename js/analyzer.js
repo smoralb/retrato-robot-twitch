@@ -1,3 +1,5 @@
+import { readAlias, MAX_AGE } from './alias.js';
+
 // Análisis 100% heurístico (sin IA). Las conclusiones son de broma: listas de palabras,
 // horarios y categorías de juegos convertidas en un "perfil criminal" con aire oficial.
 
@@ -165,6 +167,10 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
   } else if (lang === 'es') origin = 'Territorio hispanohablante sin acento detectable (sospechoso)';
   else origin = `Zona ${LANG_NAMES[lang] || 'desconocida'}`;
 
+  // ---- Pistas del alias (mandan sobre las deducciones del chat)
+  const alias = readAlias(user);
+  if (alias.country) origin = `${alias.country} (lo pone en su nombre, no hace falta ser detective)`;
+
   // ---- Juegos
   const gameFreq = new Map();
   for (const c of channels) if (c.game_name) gameFreq.set(c.game_name, (gameFreq.get(c.game_name) || 0) + 1);
@@ -185,9 +191,17 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
   age += has(OLD_GAMES) * 2.5;
   if (stats.laugh === 'jsjsjs' || stats.laugh === 'xD') age -= 3;
   if (stats.laugh === 'jeje') age += 6;
+  if (alias.features.old) age += 15;
+  if (alias.features.young) age -= 8;
   age = Math.max(age, 13 + accountYears); // nadie abre cuenta con menos de 13 (en teoría)
-  age = Math.round(clamp(age, 13, 70));
-  const ageRange = [age - 2, age + 3];
+  age = Math.round(clamp(age, 13, MAX_AGE - 3));
+  let ageRange = [age - 2, age + 3];
+  let ageSource = null;
+  if (alias.birthYear) {
+    age = new Date().getFullYear() - alias.birthYear;
+    ageRange = [age - 1, age];
+    ageSource = `nació en ${alias.birthYear}, según su alias`;
+  }
 
   // ---- Empleo
   let job;
@@ -213,9 +227,10 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
   if (follows.length > 200) traits.push(`Sigue a ${follows.length} canales. Sin comentarios`);
   if (follows.length && follows.length < 10) traits.push('Fiel a muy pocos streamers');
   if (has(SHOOTERS) >= 2) traits.push('Experto en armas (virtuales)');
+  traits.push(...alias.jokes);
   if (!traits.length) traits.push('Perfil gris. Demasiado normal. Sospechoso.');
 
-  const danger = clamp(Math.round(stats.capsPct * 0.6 + stats.swearPer1k * 1.2 + stats.nightPct * 0.4 + rate(SLANG.twitch) * 300 + (n > 2000 ? 15 : 0)), 3, 99);
+  const danger = clamp(Math.round(alias.danger + stats.capsPct * 0.6 + stats.swearPer1k * 1.2 + stats.nightPct * 0.4 + rate(SLANG.twitch) * 300 + (n > 2000 ? 15 : 0)), 3, 99);
 
   // ---- Señas particulares
   const marks = [];
@@ -225,6 +240,7 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
   if (follows.length > 50 || n > 1000) marks.push('Marca de auriculares en la cabeza');
   if (stats.topChannels[0]) marks.push(`Visto con frecuencia en #${stats.topChannels[0][0]}`);
   if (chatColor) marks.push(`Viste siempre de ${chatColor}`);
+  marks.unshift(...alias.marks);
 
   const seed = hashString(user?.login || 'anon');
 
@@ -236,6 +252,8 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
     origin,
     age,
     ageRange,
+    ageSource,
+    alias,
     accountYears,
     job,
     traits,
@@ -246,15 +264,25 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
     features: {
       young: age < 22,
       old: age > 38,
-      nightOwl: (stats.nightPct ?? 0) > 20,
+      nightOwl: (stats.nightPct ?? 0) > 20 || !!alias.features.sleepy,
       shouter: stats.capsPct > 15,
-      angry: stats.swearPer1k > 10,
+      angry: stats.swearPer1k > 10 || !!alias.features.angry,
       curious: stats.questionPct > 20,
-      laughs: !!stats.laugh && n > 0,
-      nerd: stats.avgLen > 55 || has(OLD_GAMES) > 0,
-      headphones: follows.length > 50 || n > 1000,
-      shooter: has(SHOOTERS) > 0,
+      laughs: (!!stats.laugh && n > 0) || !!alias.features.handsome,
+      nerd: stats.avgLen > 55 || has(OLD_GAMES) > 0 || !!alias.features.glasses,
+      headphones: follows.length > 50 || n > 1000 || !!alias.features.gamer,
+      shooter: has(SHOOTERS) > 0 || !!alias.features.shooter,
       polite: stats.politePer1k > 12,
+      sad: !!alias.features.sad,
+      // rasgos físicos confesados en el alias
+      fat: !!alias.features.fat,
+      thin: !!alias.features.thin,
+      bald: !!alias.features.bald,
+      beard: !!alias.features.beard,
+      glasses: !!alias.features.glasses,
+      blond: !!alias.features.blond,
+      ginger: !!alias.features.ginger,
+      darkHair: !!alias.features.dark,
     },
   };
 }

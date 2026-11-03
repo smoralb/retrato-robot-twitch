@@ -76,20 +76,30 @@ function params(profile) {
   else if (f.old) hair = pick(['receding', 'bald', 'short', 'buzz']);
   else if (f.young) hair = pick(['messy', 'spiky', 'curly', 'long', 'beanie', 'cap']);
   else hair = pick(['short', 'messy', 'curly', 'long', 'buzz', 'beanie']);
+  if (f.bald) hair = 'bald';
 
   let mouth;
   if (f.shouter) mouth = 'shout';
   else if (f.laughs) mouth = pick(['grin', 'smile', 'grin']);
-  else if (f.angry) mouth = 'frown';
+  else if (f.angry || f.sad) mouth = 'frown';
   else if (f.polite) mouth = 'smile';
   else mouth = pick(['neutral', 'smirk', 'smile']);
 
   const ey = between(0.04, 0.1);
   const noseLen = between(0.28, 0.38);
-  const beard = !f.young && r() < (f.old ? 0.65 : 0.4);
+  const beard = f.beard || (!f.young && r() < (f.old ? 0.65 : 0.4));
+  // complexión confesada en el alias (gordo_…, flaco_…)
+  const build = f.fat ? 1.16 : f.thin ? 0.88 : 1;
+  const jawBuild = f.fat ? 1.3 : f.thin ? 0.82 : 1;
+  let hairTone = f.old ? between(0.5, 0.7) : between(0.1, 0.32);
+  if (f.blond) hairTone = between(0.72, 0.85);
+  if (f.ginger) hairTone = between(0.45, 0.55);
+  if (f.darkHair) hairTone = 0.06;
   return {
-    w: between(0.92, 1.06),
-    jaw: between(0.85, 1.12),
+    fat: f.fat,
+    thin: f.thin,
+    w: between(0.92, 1.06) * build,
+    jaw: between(0.85, 1.12) * jawBuild,
     eg: between(0.25, 0.3),
     ey,
     ez: 0.66,
@@ -101,18 +111,18 @@ function params(profile) {
     mw: between(0.17, 0.22),
     skin: between(0.66, 0.8),
     hair,
-    hairTone: f.old ? between(0.5, 0.7) : between(0.1, 0.32),
+    hairTone,
     hl: between(0.52, 0.62) + (f.old ? 0.08 : 0),
     brow: f.angry ? 'angry' : f.curious ? 'raised' : pick(['flat', 'arched', 'flat']),
     eyes: f.nightOwl ? 'sleepy' : f.shouter ? 'wide' : 'normal',
     bags: f.nightOwl,
-    glasses: f.angry && f.shouter && r() < 0.5 ? 'shades' : f.nerd ? pick(['round', 'square']) : null,
+    glasses: f.angry && f.shouter && r() < 0.5 ? 'shades' : f.nerd || f.glasses ? pick(['round', 'square']) : null,
     mouth,
     beard,
     stubble: !beard && !f.young && r() < 0.5,
     mustache: beard || (!f.young && r() < 0.2),
     wrinkles: f.old,
-    freckles: f.young && r() < 0.35,
+    freckles: f.ginger || (f.young && r() < 0.35),
     headphones: f.headphones,
     shirt: f.young || f.shooter ? 'hoodie' : pick(['tshirt', 'collar', 'tshirt']),
     shirtTone: between(0.25, 0.55),
@@ -148,7 +158,7 @@ function makeScene(P) {
     let shirt = sdEllipsoid(x, y + 2.05, z + 0.1, 1.65, 0.8, 0.65);
     if (P.shirt === 'hoodie') shirt = smin(shirt, len2(len2(x, z + 0.12) - 0.5, y + 1.45) - 0.13, 0.1);
     else if (P.shirt === 'collar') shirt = smin(shirt, len2(len2(x, z + 0.05) - 0.38, y + 1.38) - 0.06, 0.05);
-    const neck = Math.max(len2(x, z + 0.08) - 0.31, Math.abs(y + 1.2) - 0.5);
+    const neck = Math.max(len2(x, z + 0.08) - (P.fat ? 0.42 : P.thin ? 0.26 : 0.31), Math.abs(y + 1.2) - 0.5);
 
     const bound = sdEllipsoid(x, y - 0.12, z, 1.2, 1.55, 1.25);
     if (bound > 0.15 && !wantMat) return Math.min(shirt, neck, bound);
@@ -157,7 +167,9 @@ function makeScene(P) {
     let skin = sdEllipsoid(x, y - 0.12, z + 0.02, 0.74 * w, 0.92, 0.86);
     skin = smin(skin, sdEllipsoid(x, y + 0.36, z - 0.1, 0.6 * jaw, 0.62, 0.68), 0.3);
     skin = smin(skin, sdSphere(x, y + 0.86, z - 0.4, 0.17), 0.2);
-    skin = smin(skin, sdSphere(ax - 0.4, y + 0.06, z - 0.47, 0.2), 0.2);
+    skin = smin(skin, sdSphere(ax - 0.4 * w, y + 0.06, z - 0.47, P.fat ? 0.27 : 0.2), 0.2);
+    if (P.fat) skin = smin(skin, sdEllipsoid(x, y + 0.98, z - 0.22, 0.45, 0.17, 0.32), 0.15); // papada
+    if (P.thin) skin = smax(skin, -sdSphere(ax - 0.47 * w, y + 0.28, z - 0.64, 0.08), 0.12); // mejillas hundidas
     skin = smin(skin, sdCapsule(x, y, z, -0.4, ey + 0.2, 0.64, 0.4, ey + 0.2, 0.64, 0.07), 0.15);
     skin = smin(skin, sdEllipsoid(x, y - (my - 0.02), z - 0.66, 0.3, 0.22, 0.22), 0.15);
     skin = smax(skin, -sdSphere(ax - eg, y - ey, z - 0.8, 0.17), 0.1);

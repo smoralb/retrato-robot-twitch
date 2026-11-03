@@ -68,7 +68,8 @@ function render() {
   $('case-no').textContent = String(profile.seed).slice(0, 6).padStart(6, '0');
   $('msg-count').textContent = stats.messages;
   $('f-alias').textContent = user ? `${user.display_name}${user.description ? ` — “${user.description}”` : ''}` : '—';
-  $('f-age').textContent = `${profile.ageRange[0]}–${profile.ageRange[1]} años`;
+  $('f-age').textContent = `${profile.ageRange[0]}–${profile.ageRange[1]} años${profile.ageSource ? ` (${profile.ageSource})` : ''}`;
+  $('f-alias-clues').textContent = profile.alias.notes.length ? profile.alias.notes.join(' · ') : 'Ninguna: alias sin delatar nada';
   $('f-job').textContent = profile.job;
   $('f-origin').textContent = profile.origin;
   const fmt = (d) => d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
