@@ -12,7 +12,7 @@ function matcher(tokens, flat) {
 }
 
 const COUNTRIES = [
-  { name: 'Perú', words: ['peruano', 'peruana', 'peru', 'limeño', 'limeno', 'cholo', 'chola'] },
+  { name: 'Perú', words: ['peruano', 'peruana', 'peru', 'limeño', 'limeno'] },
   { name: 'México', words: ['mexicano', 'mexicana', 'mexico', 'mexa', 'mx', 'chilango', 'chilanga', 'tapatio', 'regio', 'wey'] },
   { name: 'Argentina', words: ['argentino', 'argentina', 'arg', 'porteño', 'porteno', 'boludo', 'che'] },
   { name: 'Chile', words: ['chileno', 'chilena', 'chile', 'weon', 'cl'] },
@@ -42,8 +42,8 @@ const TRAITS = [
   { key: 'young', words: ['nino', 'niño', 'nina', 'niña', 'kid', 'baby', 'bebe', 'teen', 'chaval', 'chavala', 'peque', 'junior', 'jr'], joke: 'Menor de edad aparente (o lo finge)', mark: 'Cara de no haber pagado nunca un alquiler' },
   { key: 'blond', words: ['rubio', 'rubia', 'blonde', 'blond', 'guero', 'guera', 'catire'], joke: 'Rubio declarado', mark: 'Pelo rubio' },
   { key: 'ginger', words: ['pelirrojo', 'pelirroja', 'ginger', 'colorado', 'zanahoria'], joke: 'Pelirrojo confeso', mark: 'Pecas' },
-  { key: 'dark', words: ['moreno', 'morena', 'negro', 'negra', 'prieto', 'morocho', 'morocha'], joke: null, mark: 'Pelo oscuro' },
-  { key: 'angry', words: ['cabron', 'cabrona', 'malo', 'mala', 'evil', 'toxic', 'toxico', 'toxica', 'diablo', 'demon', 'satan', 'asesino', 'killer', 'psycho', 'psico', 'loco', 'loca', 'hater', 'troll', 'bastardo', 'perro'],
+  { key: 'dark', words: ['moreno', 'morena', 'morocho', 'morocha'], joke: null, mark: 'Pelo oscuro' },
+  { key: 'angry', words: ['cabron', 'cabrona', 'malo', 'mala', 'evil', 'toxic', 'toxico', 'toxica', 'diablo', 'demon', 'killer', 'psycho', 'loco', 'loca', 'hater', 'troll'],
     joke: 'Él mismo avisa de que es peligroso', mark: 'Ceño fruncido de fábrica', danger: 25 },
   { key: 'handsome', words: ['sabroso', 'sabrosa', 'guapo', 'guapa', 'sexy', 'handsome', 'hot', 'papi', 'mami', 'chulo', 'chula', 'bombon', 'galan', 'facha', 'lindo', 'linda', 'precioso', 'preciosa'],
     joke: 'Autoestima por las nubes (dato no verificado por la policía)', mark: 'Sonrisa de anuncio' },

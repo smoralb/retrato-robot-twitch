@@ -51,6 +51,30 @@ const LAUGHS = [
 
 const EMOJI_RE = /\p{Extended_Pictographic}/gu;
 
+// Temas que nunca se muestran en la ficha ni se usan para bromas: política, conflictos,
+// violencia, tragedias, religión, salud e insultos discriminatorios.
+// Las raíces se buscan dentro de la palabra (genocidio, genocida…); las palabras, exactas.
+const SENSITIVE_ROOTS = [
+  'israel', 'palestin', 'gaza', 'hamas', 'hezbol', 'sionis', 'genocid', 'holocaust', 'ucrani', 'ukrain', 'putin', 'zelensk',
+  'guerra', 'bombard', 'terroris', 'atentad', 'yihad', 'jihad', 'taliban', 'nazi', 'hitler', 'fascis', 'franquis', 'comunis',
+  'dictad', 'trump', 'biden', 'kamala', 'milei', 'abascal', 'politic', 'eleccion', 'gobierno', 'asesin', 'muerte', 'murder',
+  'suicid', 'violac', 'violad', 'pederast', 'pedofil', 'secuestr', 'tiroteo', 'masacre', 'tortur', 'cancer', 'covid',
+  'pandemi', 'enfermedad', 'judio', 'musulman', 'muslim', 'islam', 'cristian', 'catolic', 'religion', 'iglesia', 'mezquita',
+  'sinagoga', 'racis', 'negrata', 'nigg', 'sudaca', 'gitan', 'maricon', 'faggot', 'travelo', 'tranny', 'retrasad', 'retard',
+  'subnormal', 'mongol', 'autist', 'sidoso',
+];
+const SENSITIVE_WORDS = new Set([
+  'rusia', 'russia', 'war', 'bomba', 'bombas', 'misil', 'misiles', 'isis', 'franco', 'maduro', 'petro', 'sanchez', 'ayuso',
+  'psoe', 'pp', 'vox', 'podemos', 'matar', 'mato', 'muerto', 'muertos', 'kill', 'rape', 'abuso', 'tumor', 'jew', 'jews',
+  'moro', 'moros', 'chino', 'chinos', 'marica', 'puta', 'putas', 'zorra', 'perra',
+]);
+const strip = (w) => w.normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+export function isSensitive(word) {
+  const w = strip(word.toLowerCase());
+  return SENSITIVE_WORDS.has(w) || SENSITIVE_ROOTS.some((r) => w.includes(r));
+}
+
 function words(text) {
   return text.toLowerCase().normalize('NFC').match(/[\p{L}\p{N}']+/gu) || [];
 }
@@ -126,7 +150,7 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
     if (text.includes('?')) questions++;
     if (text.includes('!')) exclaims++;
     emojis += (text.match(EMOJI_RE) || []).length;
-    for (const w of ws) if (w.length > 3 && !stop.has(w) && !/^\d+$/.test(w)) wordFreq.set(w, (wordFreq.get(w) || 0) + 1);
+    for (const w of ws) if (w.length > 3 && !stop.has(w) && !/^\d+$/.test(w) && !isSensitive(w)) wordFreq.set(w, (wordFreq.get(w) || 0) + 1);
     if (m.channel) channelFreq.set(m.channel, (channelFreq.get(m.channel) || 0) + 1);
     for (const l of LAUGHS) if (l.re.test(text)) laughFreq.set(l.label, (laughFreq.get(l.label) || 0) + 1);
     if (m.timestamp) {
