@@ -2,7 +2,7 @@
 // - OAuth Redirect URL: la URL exacta donde sirvas esta web (p. ej. http://localhost:5173/)
 // - Category: Website Integration
 // Copia aquí el Client ID (es público, no es un secreto).
-export const TWITCH_CLIENT_ID = 'PON_AQUI_TU_CLIENT_ID';
+export const TWITCH_CLIENT_ID = 'b3rmgc8taxvg9dlvwcvx1649nelcwx';
 
 // Si se deja en null se usa la URL actual (sin query ni hash).
 export const REDIRECT_URI = null;
