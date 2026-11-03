@@ -2,7 +2,7 @@ import { LIMITS } from './config.js';
 import * as twitch from './twitch.js';
 import { fetchUserMessages, parsePasted } from './logs.js';
 import { analyze, rng } from './analyzer.js';
-import { drawPortrait } from './portrait.js';
+import { renderPortrait } from './portrait.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { token: null, user: null, follows: [], channels: [], chatColor: null, messages: [] };
@@ -51,8 +51,20 @@ function render() {
   const profile = analyze(state);
   const { stats, user } = profile;
 
-  $('portrait').textContent = drawPortrait(profile);
-  $('portrait').style.color = darken(profile.chatColor);
+  const ink = darken(profile.chatColor);
+  for (const id of ['portrait', 'portrait-left', 'portrait-right']) {
+    $(id).style.color = ink;
+    $(id).textContent = '';
+  }
+  $('portrait').textContent = 'Revelando retrato…';
+  // El render 3D tarda un par de segundos: se lanza después de pintar la ficha.
+  setTimeout(() => {
+    const views = renderPortrait(profile);
+    $('portrait').textContent = views.front;
+    $('portrait-left').textContent = views.left;
+    $('portrait-right').textContent = views.right;
+    state.views = views;
+  }, 50);
   $('case-no').textContent = String(profile.seed).slice(0, 6).padStart(6, '0');
   $('msg-count').textContent = stats.messages;
   $('f-alias').textContent = user ? `${user.display_name}${user.description ? ` — “${user.description}”` : ''}` : '—';
@@ -144,10 +156,21 @@ $('btn-login').onclick = () => {
 $('btn-demo').onclick = () => { Object.assign(state, demoData()); render(); };
 $('btn-paste').onclick = () => { state.messages = parsePasted($('paste').value); render(); };
 $('btn-skip').onclick = () => render();
+// Pega dos bloques de texto uno al lado del otro.
+function sideBySide(a, b) {
+  const la = a.split('
+');
+  const lb = b.split('
+');
+  const w = Math.max(...la.map((l) => l.length));
+  return Array.from({ length: Math.max(la.length, lb.length) }, (_, i) => `${(la[i] || '').padEnd(w + 8)}${lb[i] || ''}`.trimEnd()).join('
+');
+}
+
 $('btn-copy').onclick = async () => {
   const p = state.profile;
   const text = [
-    'RETRATO ROBOT — SE BUSCA', '', $('portrait').textContent, '',
+    'RETRATO ROBOT — SE BUSCA', '', $('portrait').textContent, '', sideBySide($('portrait-left').textContent, $('portrait-right').textContent), '',
     `Alias: ${p.user?.display_name}`, `Edad: ${p.ageRange.join('–')} años`, `Ocupación: ${p.job}`, `Origen: ${p.origin}`,
     `Peligrosidad: ${p.danger}/100`,
   ].join('\n');

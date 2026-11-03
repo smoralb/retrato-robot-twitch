@@ -89,18 +89,32 @@ textarea { width: 100%; font: inherit; font-size: .85rem; padding: 10px; border:
 
 .file-body { display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: start; }
 .sketch { margin: 0; text-align: center; }
-.sketch pre {
-  margin: 0;
+.sheet {
   padding: 18px 22px;
   background: #f7f2e6;
   border: 1px solid var(--paper-dark);
+  font-size: 5.6px; /* tamaño del carácter ASCII; los perfiles usan el mismo para que cuadren */
+}
+.ascii {
+  margin: 0;
   font-family: 'Cascadia Mono', Consolas, 'Courier New', monospace;
-  font-size: 5.6px;
+  font-size: 1em;
   letter-spacing: 0;
   line-height: 1;
   text-align: left;
-  position: relative;
+  min-height: 92em;
+  width: 72em; /* 120 columnas × 0.6em */
 }
+.profiles {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px dashed var(--paper-dark);
+  margin-top: 2em;
+  padding-top: 2em;
+}
+.profiles figure { margin: 0; }
+.profiles .ascii { min-height: 40em; width: 33.6em; /* 56 columnas */ }
+.profiles figcaption { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; opacity: .6; margin-top: 4px; }
 .sketch figcaption { font-size: .75rem; opacity: .7; margin-top: 6px; }
 
 .facts { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; }
@@ -125,7 +139,7 @@ li { margin-bottom: 4px; }
 
 @media (max-width: 680px) {
   .file-body, .file-cols { grid-template-columns: 1fr; }
-  .sketch pre { font-size: 3.4px; display: inline-block; padding: 10px; }
+  .sheet { font-size: 3.4px; display: inline-block; padding: 10px; }
 }
 .warn ol { margin: 6px 0; padding-left: 20px; }
 .warn.flash { animation: flash .6s; }
