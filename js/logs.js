@@ -15,16 +15,21 @@ export async function loggedChannels() {
 async function userLogsInChannel(channel, user) {
   const list = await getJson(`${LOGS_BASE}/list?channel=${channel}&user=${user}`);
   const months = (list?.availableLogs || []).slice(0, LIMITS.monthsPerChannel);
-  const out = [];
+  const messages = [];
+  const moderation = [];
   for (const { year, month } of months) {
     const data = await getJson(`${LOGS_BASE}/channel/${channel}/user/${user}/${year}/${month}?json`);
     for (const m of data?.messages || []) {
-      // type 1 = PRIVMSG (mensaje normal); ignora subs, timeouts, etc.
-      if (m.type !== undefined && m.type !== 1) continue;
-      out.push({ text: m.text, channel, timestamp: m.timestamp });
+      // type 1 = PRIVMSG (mensaje normal); type 2 = CLEARCHAT (timeout, o ban si no trae duración)
+      if (m.type === 2) {
+        const seconds = Number(m.tags?.['ban-duration']) || 0;
+        moderation.push({ kind: seconds ? 'timeout' : 'ban', seconds, channel, timestamp: m.timestamp });
+      } else if (m.type === undefined || m.type === 1) {
+        messages.push({ text: m.text, channel, timestamp: m.timestamp });
+      }
     }
   }
-  return out;
+  return { messages, moderation };
 }
 
 async function pool(items, size, fn) {
@@ -33,7 +38,7 @@ async function pool(items, size, fn) {
   const workers = Array.from({ length: size }, async () => {
     while (i < items.length) {
       const item = items[i++];
-      results.push(await fn(item).catch(() => []));
+      results.push(await fn(item).catch(() => null));
     }
   });
   await Promise.all(workers);
@@ -41,6 +46,7 @@ async function pool(items, size, fn) {
 }
 
 // candidates: logins de canal ordenados por prioridad.
+// Devuelve { messages, moderation } con los mensajes y los timeouts/bans recibidos.
 export async function fetchUserMessages(user, candidates, onProgress) {
   const logged = await loggedChannels();
   const channels = [...new Set(candidates.map((c) => c.toLowerCase()))]
@@ -49,11 +55,13 @@ export async function fetchUserMessages(user, candidates, onProgress) {
   onProgress?.(`${channels.length} de tus canales aparecen en el archivo de logs`);
   let done = 0;
   const chunks = await pool(channels, LIMITS.concurrency, async (ch) => {
-    const msgs = await userLogsInChannel(ch, user.toLowerCase());
-    onProgress?.(`[${++done}/${channels.length}] #${ch}: ${msgs.length} mensajes`);
-    return msgs;
+    const logs = await userLogsInChannel(ch, user.toLowerCase());
+    const mod = logs.moderation.length ? `, ${logs.moderation.length} sanciones` : '';
+    onProgress?.(`[${++done}/${channels.length}] #${ch}: ${logs.messages.length} mensajes${mod}`);
+    return logs;
   });
-  return chunks.flat();
+  const ok = chunks.filter(Boolean);
+  return { messages: ok.flatMap((c) => c.messages), moderation: ok.flatMap((c) => c.moderation) };
 }
 
 // Formatos aceptados al pegar a mano:

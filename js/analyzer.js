@@ -85,7 +85,27 @@ function top(map, n) {
   return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
 }
 
-export function analyze({ user, follows = [], channels = [], messages = [], chatColor = null }) {
+// Resume los timeouts y bans recibidos en un "historial delictivo".
+function criminalRecord(moderation) {
+  const timeouts = moderation.filter((m) => m.kind === 'timeout');
+  const bans = moderation.filter((m) => m.kind === 'ban');
+  const seconds = timeouts.reduce((a, m) => a + m.seconds, 0);
+  const byChannel = new Map();
+  for (const m of moderation) byChannel.set(m.channel, (byChannel.get(m.channel) || 0) + 1);
+  const worst = top(byChannel, 1)[0];
+  const longest = timeouts.reduce((a, m) => Math.max(a, m.seconds), 0);
+  return { timeouts: timeouts.length, bans: bans.length, seconds, longest, worst, banChannels: [...new Set(bans.map((b) => b.channel))] };
+}
+
+function duration(s) {
+  if (s < 60) return `${s} s`;
+  if (s < 3600) return `${Math.round(s / 60)} min`;
+  if (s < 86400) return `${(s / 3600).toFixed(1).replace('.0', '')} h`;
+  const d = (s / 86400).toFixed(1).replace('.0', '');
+  return `${d} ${d === '1' ? 'día' : 'días'}`;
+}
+
+export function analyze({ user, follows = [], channels = [], messages = [], chatColor = null, moderation = [] }) {
   const n = messages.length;
   const allWords = [];
   const wordFreq = new Map();
@@ -227,10 +247,25 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
   if (follows.length > 200) traits.push(`Sigue a ${follows.length} canales. Sin comentarios`);
   if (follows.length && follows.length < 10) traits.push('Fiel a muy pocos streamers');
   if (has(SHOOTERS) >= 2) traits.push('Experto en armas (virtuales)');
+  // ---- Antecedentes (timeouts y bans del archivo de logs)
+  const rec = criminalRecord(moderation);
+  let record;
+  if (!rec.timeouts && !rec.bans) record = 'Sin antecedentes en los canales archivados. Limpio… de momento';
+  else {
+    const parts = [];
+    if (rec.timeouts) parts.push(`${rec.timeouts} timeout${rec.timeouts > 1 ? 's' : ''} (${duration(rec.seconds)} de silencio forzoso en total)`);
+    if (rec.bans) parts.push(`baneado en ${rec.banChannels.map((c) => '#' + c).join(', ')}`);
+    record = parts.join(' · ');
+  }
+  if (rec.bans) traits.push(`Desterrado de ${rec.banChannels.length > 1 ? `${rec.banChannels.length} canales` : '#' + rec.banChannels[0]}. Los mods lo conocen por su nombre`);
+  if (rec.timeouts >= 10) traits.push('Reincidente: los mods tienen su nombre en un pósit');
+  else if (rec.timeouts >= 3) traits.push('Visitante habitual del rincón de pensar');
+  else if (rec.timeouts) traits.push('Ha probado el timeout (y no le gustó)');
+  if (rec.longest >= 86400) traits.push(`Su timeout más largo: ${duration(rec.longest)}. Eso ya es una condena`);
   traits.push(...alias.jokes);
   if (!traits.length) traits.push('Perfil gris. Demasiado normal. Sospechoso.');
 
-  const danger = clamp(Math.round(alias.danger + stats.capsPct * 0.6 + stats.swearPer1k * 1.2 + stats.nightPct * 0.4 + rate(SLANG.twitch) * 300 + (n > 2000 ? 15 : 0)), 3, 99);
+  const danger = clamp(Math.round(rec.timeouts * 4 + rec.bans * 20 + alias.danger + stats.capsPct * 0.6 + stats.swearPer1k * 1.2 + stats.nightPct * 0.4 + rate(SLANG.twitch) * 300 + (n > 2000 ? 15 : 0)), 3, 99);
 
   // ---- Señas particulares
   const marks = [];
@@ -241,6 +276,7 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
   if (stats.topChannels[0]) marks.push(`Visto con frecuencia en #${stats.topChannels[0][0]}`);
   if (chatColor) marks.push(`Viste siempre de ${chatColor}`);
   marks.unshift(...alias.marks);
+  if (rec.worst && rec.worst[1] > 1) marks.push(`Fichado en #${rec.worst[0]} (${rec.worst[1]} sanciones)`);
 
   const seed = hashString(user?.login || 'anon');
 
@@ -254,6 +290,8 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
     ageRange,
     ageSource,
     alias,
+    record,
+    criminal: rec,
     accountYears,
     job,
     traits,
@@ -266,7 +304,7 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
       old: age > 38,
       nightOwl: (stats.nightPct ?? 0) > 20 || !!alias.features.sleepy,
       shouter: stats.capsPct > 15,
-      angry: stats.swearPer1k > 10 || !!alias.features.angry,
+      angry: stats.swearPer1k > 10 || !!alias.features.angry || rec.bans > 0 || rec.timeouts >= 3,
       curious: stats.questionPct > 20,
       laughs: (!!stats.laugh && n > 0) || !!alias.features.handsome,
       nerd: stats.avgLen > 55 || has(OLD_GAMES) > 0 || !!alias.features.glasses,

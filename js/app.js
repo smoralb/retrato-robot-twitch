@@ -5,7 +5,7 @@ import { analyze, rng } from './analyzer.js';
 import { renderPortrait } from './portrait.js';
 
 const $ = (id) => document.getElementById(id);
-const state = { token: null, user: null, follows: [], channels: [], chatColor: null, messages: [] };
+const state = { token: null, user: null, follows: [], channels: [], chatColor: null, messages: [], moderation: [] };
 
 function show(screen) {
   for (const s of document.querySelectorAll('.screen')) s.hidden = s.id !== `screen-${screen}`;
@@ -40,13 +40,15 @@ async function investigate() {
 
   // Prioridad: su propio canal y los follows más recientes.
   const candidates = [state.user.login, ...state.follows.map((f) => f.broadcaster_login)];
-  state.messages = await fetchUserMessages(state.user.login, candidates, log).catch((e) => {
+  const logs = await fetchUserMessages(state.user.login, candidates, log).catch((e) => {
     log(`El archivo de logs no responde (${e.message})`);
-    return [];
+    return { messages: [], moderation: [] };
   });
-  log(`Total: ${state.messages.length} mensajes recuperados`);
+  state.messages = logs.messages;
+  state.moderation = logs.moderation;
+  log(`Total: ${state.messages.length} mensajes y ${state.moderation.length} sanciones recuperados`);
 
-  if (!state.messages.length) return show('paste');
+  if (!state.messages.length && !state.moderation.length) return show('paste');
   render();
 }
 
@@ -72,6 +74,7 @@ function render() {
   $('msg-count').textContent = stats.messages;
   $('f-alias').textContent = user ? `${user.display_name}${user.description ? ` — “${user.description}”` : ''}` : '—';
   $('f-age').textContent = `${profile.ageRange[0]}–${profile.ageRange[1]} años${profile.ageSource ? ` (${profile.ageSource})` : ''}`;
+  $('f-record').textContent = profile.record;
   $('f-alias-clues').textContent = profile.alias.notes.length ? profile.alias.notes.join(' · ') : 'Ninguna: alias sin delatar nada';
   $('f-job').textContent = profile.job;
   $('f-origin').textContent = profile.origin;
@@ -148,6 +151,11 @@ function demoData() {
     ],
     chatColor: '#1E90FF',
     messages,
+    moderation: [
+      { kind: 'timeout', seconds: 600, channel: 'ibai', timestamp: new Date(now - 20 * 864e5).toISOString() },
+      { kind: 'timeout', seconds: 3600, channel: 'ibai', timestamp: new Date(now - 9 * 864e5).toISOString() },
+      { kind: 'timeout', seconds: 60, channel: 'elxokas', timestamp: new Date(now - 3 * 864e5).toISOString() },
+    ],
   };
 }
 
