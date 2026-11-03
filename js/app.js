@@ -75,7 +75,6 @@ function render() {
   $('f-alias').textContent = user ? `${user.display_name}${user.description ? ` — “${user.description}”` : ''}` : '—';
   $('f-age').textContent = `${profile.ageRange[0]}–${profile.ageRange[1]} años${profile.ageSource ? ` (${profile.ageSource})` : ''}`;
   $('f-record').textContent = profile.record;
-  $('f-alias-clues').textContent = profile.alias.notes.length ? profile.alias.notes.join(' · ') : 'Ninguna: alias sin delatar nada';
   $('f-job').textContent = profile.job;
   $('f-origin').textContent = profile.origin;
   const fmt = (d) => d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
