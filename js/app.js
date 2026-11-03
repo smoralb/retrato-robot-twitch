@@ -59,6 +59,12 @@ function render() {
   $('f-age').textContent = `${profile.ageRange[0]}–${profile.ageRange[1]} años`;
   $('f-job').textContent = profile.job;
   $('f-origin').textContent = profile.origin;
+  const fmt = (d) => d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
+  $('f-period').textContent = stats.first
+    ? `Del ${fmt(stats.first)} al ${fmt(stats.last)} · ${stats.messages} mensajes${stats.channelCount ? ` en ${stats.channelCount} canales` : ''}`
+    : stats.messages
+      ? `${stats.messages} mensajes sin fecha`
+      : 'Sin mensajes: solo perfil y canales seguidos';
   $('f-account').textContent = user?.created_at
     ? `${profile.accountYears.toFixed(1)} años (desde ${new Date(user.created_at).toLocaleDateString('es')})`
     : '—';

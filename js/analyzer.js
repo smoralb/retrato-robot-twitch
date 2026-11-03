@@ -91,6 +91,7 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
   const laughFreq = new Map();
   const hours = new Array(24).fill(0);
   let caps = 0, questions = 0, exclaims = 0, emojis = 0, totalLen = 0, timed = 0, workHours = 0, night = 0, weekend = 0;
+  let first = null, last = null;
   const stop = new Set(Object.values(STOPWORDS).flat());
 
   for (const m of messages) {
@@ -112,6 +113,8 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
       const day = d.getDay();
       hours[h]++;
       timed++;
+      if (!first || d < first) first = d;
+      if (!last || d > last) last = d;
       if (day === 0 || day === 6) weekend++;
       else if (h >= 9 && h < 18) workHours++;
       if (h >= 1 && h < 7) night++;
@@ -138,6 +141,9 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
     topWords: top(wordFreq, 10),
     topChannels: top(channelFreq, 5),
     laugh: top(laughFreq, 1)[0]?.[0] || null,
+    first,
+    last,
+    channelCount: channelFreq.size,
   };
 
   // ---- Idioma y origen
