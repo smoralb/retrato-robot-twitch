@@ -74,6 +74,11 @@ function render() {
   $('wanted-stars').innerHTML = Array.from({ length: 5 }, (_, i) => (i < profile.wanted.stars ? '★' : '<span class="off">★</span>')).join('');
   $('wanted-stars').title = `Nivel de búsqueda: ${profile.wanted.stars}/5`;
   $('wanted-label').textContent = profile.wanted.label;
+  // Sin estrellas no hay orden de búsqueda: sello de "indiferente" y sin estrellas
+  const clean = profile.wanted.stars === 0;
+  $('wanted-stamp').textContent = clean ? 'INDIFERENTE' : 'SE BUSCA';
+  $('wanted-stamp').classList.toggle('meh', clean);
+  $('wanted-stars').hidden = clean;
   $('msg-count').textContent = stats.messages;
   $('f-alias').textContent = user ? `${user.display_name}${user.description ? ` — “${user.description}”` : ''}` : '—';
   $('f-age').textContent = `${profile.ageRange[0]}–${profile.ageRange[1]} años${profile.ageSource ? ` (${profile.ageSource})` : ''}`;

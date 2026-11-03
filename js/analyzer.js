@@ -194,7 +194,7 @@ function evidence(messages, stats, allWords) {
 }
 
 // Nivel de búsqueda de 0 a 5 estrellas según timeouts y bans.
-const WANTED_LABELS = ['Ciudadano ejemplar', 'Vigilado', 'Sospechoso', 'Buscado', 'Muy buscado', 'Enemigo público nº 1'];
+const WANTED_LABELS = ['Cuchara: ni pincha ni corta', 'Vigilado', 'Sospechoso', 'Buscado', 'Muy buscado', 'Enemigo público nº 1'];
 function wantedLevel(rec) {
   const stars = Math.min(5, rec.bans * 2 + (rec.timeouts >= 1) + (rec.timeouts >= 3) + (rec.timeouts >= 6) + (rec.timeouts >= 10) + (rec.longest >= 86400));
   return { stars, label: WANTED_LABELS[stars] };

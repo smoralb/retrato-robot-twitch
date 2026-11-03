@@ -91,6 +91,7 @@ textarea { width: 100%; font: inherit; font-size: .85rem; padding: 10px; border:
 .stars .off { color: var(--paper-dark); }
 #wanted-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .12em; opacity: .75; }
 .wanted { color: var(--red); border: 3px double var(--red); padding: 0 10px; font-weight: bold; transform: rotate(4deg); letter-spacing: .15em; }
+.wanted.meh { color: #6b6b6b; border-color: #6b6b6b; transform: rotate(-3deg); }
 
 .file-body { display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: start; }
 .sketch { margin: 0; text-align: center; }
