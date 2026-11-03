@@ -117,7 +117,7 @@ function fillList(id, items) {
 function darken(hex) {
   if (!hex) return '';
   const n = parseInt(hex.slice(1), 16);
-  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => Math.round(c * 0.55));
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((c) => Math.round(c * 0.4));
   return `rgb(${ch.join(',')})`;
 }
 
@@ -156,15 +156,13 @@ $('btn-login').onclick = () => {
 $('btn-demo').onclick = () => { Object.assign(state, demoData()); render(); };
 $('btn-paste').onclick = () => { state.messages = parsePasted($('paste').value); render(); };
 $('btn-skip').onclick = () => render();
+
 // Pega dos bloques de texto uno al lado del otro.
 function sideBySide(a, b) {
-  const la = a.split('
-');
-  const lb = b.split('
-');
+  const la = a.split('\n');
+  const lb = b.split('\n');
   const w = Math.max(...la.map((l) => l.length));
-  return Array.from({ length: Math.max(la.length, lb.length) }, (_, i) => `${(la[i] || '').padEnd(w + 8)}${lb[i] || ''}`.trimEnd()).join('
-');
+  return Array.from({ length: Math.max(la.length, lb.length) }, (_, i) => `${(la[i] || '').padEnd(w + 8)}${lb[i] || ''}`.trimEnd()).join('\n');
 }
 
 $('btn-copy').onclick = async () => {

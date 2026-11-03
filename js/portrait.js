@@ -255,7 +255,7 @@ function makeScene(P) {
     // ---- cascos
     let phones = 1e9;
     if (P.headphones) {
-      const e = len2(x / (0.86 * w), (y - 0.05) / (1.12 + thick)) - 1;
+      const e = len2(x / (0.8 * w + thick), (y - 0.05) / (1.03 + thick)) - 1;
       phones = Math.max(len2(e * 0.95, z) - 0.045, -y);
       phones = Math.min(phones, Math.max(len2(y + 0.02, z + 0.02) - 0.25, Math.abs(ax - 0.84 * w) - 0.075) - 0.01);
     }
