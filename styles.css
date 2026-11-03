@@ -58,6 +58,11 @@ h1 { font-size: clamp(2.2rem, 7vw, 4rem); letter-spacing: .3em; margin: 0; }
 #screen-login .card { text-align: center; }
 #screen-login .btn { margin: 8px; }
 .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
+/* Botones que van sobre el fondo oscuro de la página (fuera del papel) */
+#screen-result > .row { margin-top: 24px; }
+#screen-result > .row .btn { background: var(--paper); border-color: var(--paper); color: var(--ink); }
+#screen-result > .row .btn.ghost { background: transparent; color: var(--paper); }
+#screen-result > .row .btn:hover { filter: none; background: #fff; border-color: #fff; color: var(--ink); }
 
 .small { font-size: .8rem; opacity: .7; }
 .warn { background: #fff3c4; border-left: 4px solid #e0a800; padding: 8px 12px; text-align: left; font-size: .9rem; }
