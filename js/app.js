@@ -9,6 +9,9 @@ const state = { token: null, user: null, follows: [], channels: [], chatColor: n
 
 function show(screen) {
   for (const s of document.querySelectorAll('.screen')) s.hidden = s.id !== `screen-${screen}`;
+  // La ficha ocupa toda la pantalla: sin cabecera
+  document.querySelector('header').hidden = screen === 'result';
+  if (screen === 'result') scrollTo(0, 0);
 }
 
 function log(line) {
