@@ -1,7 +1,8 @@
 import { LIMITS } from './config.js';
 import * as twitch from './twitch.js';
 import { fetchUserMessages, parsePasted } from './logs.js';
-import { analyze, rng } from './analyzer.js';
+import * as share from './share.js';
+import { analyze } from './analyzer.js';
 import { renderPortrait } from './portrait.js';
 
 const $ = (id) => document.getElementById(id);
@@ -80,6 +81,18 @@ function render() {
   $('wanted-stamp').classList.toggle('meh', clean);
   $('wanted-stars').hidden = clean;
   $('msg-count').textContent = stats.messages;
+  const links = share.socialLinks(profile);
+  for (const k of Object.keys(links)) $(`share-${k}`).href = links[k];
+  const PROFILE_JOKES = [
+    'Ninguno es el bueno.',
+    'Ambos perfiles coinciden: es feo por los dos lados.',
+    'Se negó a sonreír para la foto.',
+    'No hay perfil bueno. Lo hemos comprobado dos veces.',
+    'Cualquier parecido con una persona real es mala suerte para esa persona.',
+    'Al menos es simétrico. Más o menos.',
+    'El perfil izquierdo no se habla con el derecho.',
+  ];
+  $('profiles-joke').textContent = PROFILE_JOKES[Number(profile.seed) % PROFILE_JOKES.length];
   $('f-alias').textContent = user ? `${user.display_name}${user.description ? ` — “${user.description}”` : ''}` : '—';
   $('f-age').textContent = `${profile.ageRange[0]}–${profile.ageRange[1]} años${profile.ageSource ? ` (${profile.ageSource})` : ''}`;
   $('f-record').textContent = profile.record;
@@ -108,6 +121,7 @@ function render() {
     bar.title = `${h}:00 — ${v} mensajes`;
     return bar;
   }));
+  $('f-hours-joke').textContent = hoursJoke(stats);
   $('f-evidence').replaceChildren(...stats.evidence.flatMap(({ label, value, note }) => {
     const dt = document.createElement('dt');
     dt.textContent = label;
@@ -146,6 +160,21 @@ function fillList(id, items) {
   }));
 }
 
+// Comentario de broma sobre el horario, según la hora punta y el reparto del día.
+function hoursJoke(stats) {
+  const total = stats.hours.reduce((a, b) => a + b, 0);
+  if (!total) return 'Sin datos de horario: o es un fantasma o la coartada es perfecta.';
+  const peak = stats.hours.indexOf(Math.max(...stats.hours));
+  const hh = `${peak}:00`;
+  if (stats.nightPct > 30) return `Hora punta: ${hh}. Mientras el resto duerme, el sospechoso escribe. Los vecinos no han oído nada, pero el chat sí.`;
+  if (peak >= 1 && peak < 7) return `Hora punta: ${hh}. A esas horas solo están despiertos los panaderos, los gatos y este sospechoso.`;
+  if (stats.workPct > 40) return `Hora punta: ${hh}. Casi todo en horario laboral. O es muy productivo o su jefe debería revisar el historial.`;
+  if (peak >= 9 && peak < 14) return `Hora punta: ${hh}. Madrugador: charla de chat antes de comer. Sospechosamente sano.`;
+  if (peak >= 14 && peak < 18) return `Hora punta: ${hh}. Sobremesa en el chat. La siesta, de momento, brilla por su ausencia.`;
+  if (peak >= 18 && peak < 22) return `Hora punta: ${hh}. Horario de prime time: sale del trabajo, cena rápido y a delinquir en el chat.`;
+  return `Hora punta: ${hh}. Cuando cae la noche, el sospechoso se crece. Las ojeras no son casualidad.`;
+}
+
 // Los colores de chat suelen ser muy claros; los oscurecemos para que se lean sobre papel.
 function darken(hex) {
   if (!hex) return '';
@@ -154,66 +183,26 @@ function darken(hex) {
   return `rgb(${ch.join(',')})`;
 }
 
-function demoData() {
-  const r = rng(42);
-  const lines = [
-    'jajaja que manco tío', 'KEKW', 'vale vale', 'POGGERS', 'alguien sabe a qué hora empieza el torneo?', 'joder qué jugada',
-    'gracias por el directo!', 'xd', 'ese build está roto', 'mola mucho la nueva skin', 'NO PUEDE SER', 'gg', 'Sadge',
-    'hostia el clutch', 'tío eso era easy', 'copium', 'buenas a todos', 'qué juego es este?', 'jajajaja mazo bueno', 'LUL',
-  ];
-  const now = Date.now();
-  const messages = Array.from({ length: 400 }, () => ({
-    text: lines[Math.floor(r() * lines.length)],
-    channel: ['ibai', 'illojuan', 'elxokas', 'auronplay'][Math.floor(r() * 4)],
-    timestamp: new Date(now - r() * 90 * 864e5 - (r() < 0.6 ? 0 : 6 * 36e5)).toISOString(),
-  }));
-  return {
-    user: { login: 'sospechoso_demo', display_name: 'Sospechoso_Demo', description: 'aquí pasando el rato', created_at: '2016-03-14T00:00:00Z' },
-    follows: Array.from({ length: 73 }),
-    channels: [
-      { game_name: 'Just Chatting', broadcaster_language: 'es' }, { game_name: 'Valorant', broadcaster_language: 'es' },
-      { game_name: 'League of Legends', broadcaster_language: 'es' }, { game_name: 'Valorant', broadcaster_language: 'es' },
-      { game_name: 'Counter-Strike', broadcaster_language: 'en' },
-    ],
-    chatColor: '#1E90FF',
-    messages,
-    moderation: [
-      { kind: 'timeout', seconds: 600, channel: 'ibai', timestamp: new Date(now - 20 * 864e5).toISOString() },
-      { kind: 'timeout', seconds: 3600, channel: 'ibai', timestamp: new Date(now - 9 * 864e5).toISOString() },
-      { kind: 'timeout', seconds: 60, channel: 'elxokas', timestamp: new Date(now - 3 * 864e5).toISOString() },
-    ],
-  };
-}
-
 $('btn-login').onclick = () => {
   if (twitch.isConfigured()) return twitch.login();
   $('config-warning').hidden = false;
   $('config-warning').classList.add('flash');
   setTimeout(() => $('config-warning').classList.remove('flash'), 600);
 };
-$('btn-demo').onclick = () => { Object.assign(state, demoData()); render(); };
 $('btn-paste').onclick = () => { state.messages = parsePasted($('paste').value); render(); };
 $('btn-skip').onclick = () => render();
 
-// Pega dos bloques de texto uno al lado del otro.
-function sideBySide(a, b) {
-  const la = a.split('\n');
-  const lb = b.split('\n');
-  const w = Math.max(...la.map((l) => l.length));
-  return Array.from({ length: Math.max(la.length, lb.length) }, (_, i) => `${(la[i] || '').padEnd(w + 8)}${lb[i] || ''}`.trimEnd()).join('\n');
-}
-
-$('btn-copy').onclick = async () => {
+async function currentImage() {
   const p = state.profile;
-  const text = [
-    'RETRATO ROBOT — SE BUSCA', '', $('portrait').textContent, '', sideBySide($('portrait-left').textContent, $('portrait-right').textContent), '',
-    `Alias: ${p.user?.display_name}`, `Edad: ${p.ageRange.join('–')} años`, `Ocupación: ${p.job}`, `Origen: ${p.origin}`,
-    `Peligrosidad: ${p.danger}/100`,
-  ].join('\n');
-  await navigator.clipboard.writeText(text);
-  $('btn-copy').textContent = '¡Copiado!';
-  setTimeout(() => ($('btn-copy').textContent = 'Copiar retrato'), 1500);
+  return share.toBlob(share.buildImage(p, state.views, darken(p.chatColor), $('profiles-joke').textContent));
+}
+$('btn-download').onclick = async () => share.download(await currentImage());
+$('btn-share-native').onclick = async () => {
+  const blob = await currentImage();
+  if (!(await share.nativeShare(state.profile, blob))) share.download(blob);
 };
+$('btn-share-native').hidden = !(navigator.canShare && navigator.share);
+
 $('btn-logout').onclick = async () => {
   await twitch.logout(state.token);
   location.reload();

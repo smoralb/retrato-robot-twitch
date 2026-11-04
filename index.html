@@ -17,11 +17,23 @@
     <!-- 1. Login -->
     <section id="screen-login" class="screen">
       <div class="card">
-        <p>Inicia sesión con Twitch. Leeremos tu perfil, los canales que sigues y los
-          mensajes que hayas escrito en los canales que aparecen en el archivo público
-          de logs <a href="https://logs.ivr.fi" target="_blank" rel="noopener">logs.ivr.fi</a>.</p>
+        <div class="lead">
+          <span class="lead-tag">Paso 1 · Identificación</span>
+          <h2>Inicia sesión con <span class="hl-twitch">Twitch</span> para reconstruir tu <span class="hl-red">retrato robot</span></h2>
+        </div>
         <button id="btn-login" class="btn twitch">Entrar con Twitch</button>
-        <p class="small">Todo se procesa en tu navegador. No guardamos nada.</p>
+        <div class="notes">
+          <div class="note">
+            <h3>De dónde sacamos los datos</h3>
+            <p>Leemos tu perfil, los canales que sigues y los mensajes que hayas escrito en los canales
+              que aparecen en el archivo público de logs
+              <a href="https://logs.ivr.fi" target="_blank" rel="noopener">logs.ivr.fi</a>.</p>
+          </div>
+          <div class="note">
+            <h3>Qué hacemos con ellos</h3>
+            <p>Todo se procesa en tu navegador. No guardamos nada.</p>
+          </div>
+        </div>
         <div id="config-warning" class="warn" hidden>
           <strong>Falta el Client ID de Twitch.</strong>
           <ol>
@@ -29,9 +41,7 @@
             <li>OAuth Redirect URL: <code id="redirect-hint"></code> · Category: Website Integration · Client Type: Public.</li>
             <li>Copia el <em>Client ID</em> en <code>js/config.js</code> y recarga la página.</li>
           </ol>
-          Mientras tanto puedes probar el ejemplo.
         </div>
-        <button id="btn-demo" class="btn ghost">Ver un ejemplo sin iniciar sesión</button>
       </div>
     </section>
 
@@ -78,6 +88,7 @@
                 <figure><pre id="portrait-left" class="ascii"></pre><figcaption>Perfil izquierdo</figcaption></figure>
                 <figure><pre id="portrait-right" class="ascii"></pre><figcaption>Perfil derecho</figcaption></figure>
               </div>
+              <p id="profiles-joke" class="profiles-joke"></p>
             </div>
             <figcaption>Retrato elaborado a partir de <b id="msg-count"></b> testimonios escritos</figcaption>
           </figure>
@@ -108,6 +119,8 @@
             <h3>Horario de actividad</h3>
             <div id="f-hours" class="hours"></div>
             <div class="hours-axis"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div>
+            <p class="hours-help">Cada barra es una hora del día: cuanto más alta, más mensajes escritos a esa hora.</p>
+            <p id="f-hours-joke" class="hours-joke"></p>
           </div>
           <div>
             <h3>Huellas en el chat</h3>
@@ -117,8 +130,19 @@
         </div>
         <p class="disclaimer">Análisis heurístico de broma, sin IA. Cualquier parecido con la realidad es pura estadística.</p>
       </article>
+      <div class="share">
+        <h3>Comparte tu retrato</h3>
+        <div class="row">
+          <button id="btn-share-native" class="btn" hidden>Compartir…</button>
+          <a id="share-x" class="btn ghost" target="_blank" rel="noopener">X</a>
+          <a id="share-whatsapp" class="btn ghost" target="_blank" rel="noopener">WhatsApp</a>
+          <a id="share-telegram" class="btn ghost" target="_blank" rel="noopener">Telegram</a>
+          <a id="share-reddit" class="btn ghost" target="_blank" rel="noopener">Reddit</a>
+          <button id="btn-download" class="btn ghost">Descargar imagen</button>
+        </div>
+        <p class="small">Las redes reciben solo el texto y el enlace. Para subir la imagen, descárgala o usa «Compartir…» en el móvil.</p>
+      </div>
       <div class="row">
-        <button id="btn-copy" class="btn">Copiar retrato</button>
         <button id="btn-logout" class="btn ghost">Cerrar sesión</button>
       </div>
     </section>

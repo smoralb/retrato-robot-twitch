@@ -28,7 +28,7 @@ Web estática (HTML + JS, sin backend ni IA) que genera un retrato robot en ASCI
    npx serve -l 5173 .
    ```
 
-4. Abre <http://localhost:5173/>. El botón "Ver un ejemplo" funciona sin configurar nada.
+4. Abre <http://localhost:5173/>.
 
 ## Publicar en GitHub Pages
 
