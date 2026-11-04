@@ -4,6 +4,8 @@ import { fetchUserMessages, parsePasted, recentChatters } from './logs.js';
 import * as share from './share.js';
 import { analyze } from './analyzer.js';
 import { renderPortrait } from './portrait.js';
+import { choose } from './humor.js';
+import { F } from './frases.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { ownDone: false, followers: [], token: null, user: null, follows: [], channels: [], chatColor: null, messages: [], moderation: [] };
@@ -86,16 +88,7 @@ function render(subject = state) {
   $('wanted-stamp').classList.toggle('meh', clean);
   $('wanted-stars').hidden = clean;
   $('msg-count').textContent = stats.messages;
-  const PROFILE_JOKES = [
-    'Ninguno es el bueno.',
-    'Ambos perfiles coinciden: es feo por los dos lados.',
-    'Se negó a sonreír para la foto.',
-    'No hay perfil bueno. Lo hemos comprobado dos veces.',
-    'Cualquier parecido con una persona real es mala suerte para esa persona.',
-    'Al menos es simétrico. Más o menos.',
-    'El perfil izquierdo no se habla con el derecho.',
-  ];
-  $('profiles-joke').textContent = PROFILE_JOKES[Number(profile.seed) % PROFILE_JOKES.length];
+  $('profiles-joke').textContent = choose(F.profiles, `${user?.login || 'anon'}:profiles`);
   $('f-alias').textContent = user ? `${user.display_name}${user.description ? ` — “${user.description}”` : ''}` : '—';
   $('f-age').textContent = `${profile.ageRange[0]}–${profile.ageRange[1]} años${profile.ageSource ? ` (${profile.ageSource})` : ''}`;
   $('f-record').textContent = profile.record;
@@ -106,16 +99,16 @@ function render(subject = state) {
     ? `Del ${fmt(stats.first)} al ${fmt(stats.last)} · ${stats.messages} mensajes${stats.channelCount ? ` en ${stats.channelCount} canales` : ''}`
     : stats.messages
       ? `${stats.messages} mensajes sin fecha`
-      : 'Sin mensajes: solo perfil y canales seguidos';
+      : choose(F.period_none, `${user?.login || 'anon'}:period_none`);
   $('f-account').textContent = user?.created_at
     ? `${profile.accountYears.toFixed(1)} años (desde ${new Date(user.created_at).toLocaleDateString('es')})`
     : '—';
-  $('f-games').textContent = profile.topGames.length ? profile.topGames.map(([g]) => g).join(', ') : 'Desconocidas';
+  $('f-games').textContent = profile.topGames.length ? profile.topGames.map(([g]) => g).join(', ') : choose(F.games_none, `${user?.login || 'anon'}:games_none`);
   $('f-danger').textContent = `${profile.danger}/100`;
   $('f-danger-bar').style.width = `${profile.danger}%`;
 
   fillList('f-traits', profile.traits);
-  fillList('f-marks', profile.marks.length ? profile.marks : ['Ninguna. Un fantasma.']);
+  fillList('f-marks', profile.marks.length ? profile.marks : [choose(F.m_none, `${user?.login || 'anon'}:m_none`)]);
 
   const max = Math.max(...stats.hours, 1);
   $('f-hours').replaceChildren(...stats.hours.map((v, h) => {
@@ -124,7 +117,7 @@ function render(subject = state) {
     bar.title = `${h}:00 — ${v} mensajes`;
     return bar;
   }));
-  $('f-hours-joke').textContent = hoursJoke(stats);
+  $('f-hours-joke').textContent = hoursJoke(stats, user?.login || 'anon');
   $('f-evidence').replaceChildren(...stats.evidence.flatMap(({ label, value, note }) => {
     const dt = document.createElement('dt');
     dt.textContent = label;
@@ -136,7 +129,7 @@ function render(subject = state) {
     dd.append(v, ' ', small);
     return [dt, dd];
   }));
-  if (!stats.evidence.length) $('f-evidence').textContent = 'Sin declaraciones registradas.';
+  if (!stats.evidence.length) $('f-evidence').textContent = choose(F.evidence_none, `${user?.login || 'anon'}:evidence_none`);
   $('f-words').replaceChildren(...stats.topWords.map(([w, c]) => {
     const tag = document.createElement('span');
     tag.textContent = `${w} ×${c}`;
@@ -283,18 +276,19 @@ function fillList(id, items) {
 }
 
 // Comentario de broma sobre el horario, según la hora punta y el reparto del día.
-function hoursJoke(stats) {
+function hoursJoke(stats, key) {
+  const V = (id, list) => choose(list, `${key}:${id}`);
   const total = stats.hours.reduce((a, b) => a + b, 0);
-  if (!total) return 'Sin datos de horario: o es un fantasma o la coartada es perfecta.';
+  if (!total) return V('hours_none', F.hours_none);
   const peak = stats.hours.indexOf(Math.max(...stats.hours));
   const hh = `${peak}:00`;
-  if (stats.nightPct > 30) return `Hora punta: ${hh}. Mientras el resto duerme, el sospechoso escribe. Los vecinos no han oído nada, pero el chat sí.`;
-  if (peak >= 1 && peak < 7) return `Hora punta: ${hh}. A esas horas solo están despiertos los panaderos, los gatos y este sospechoso.`;
-  if (stats.workPct > 40) return `Hora punta: ${hh}. Casi todo en horario laboral. O es muy productivo o su jefe debería revisar el historial.`;
-  if (peak >= 9 && peak < 14) return `Hora punta: ${hh}. Madrugador: charla de chat antes de comer. Sospechosamente sano.`;
-  if (peak >= 14 && peak < 18) return `Hora punta: ${hh}. Sobremesa en el chat. La siesta, de momento, brilla por su ausencia.`;
-  if (peak >= 18 && peak < 22) return `Hora punta: ${hh}. Horario de prime time: sale del trabajo, cena rápido y a delinquir en el chat.`;
-  return `Hora punta: ${hh}. Cuando cae la noche, el sospechoso se crece. Las ojeras no son casualidad.`;
+  if (stats.nightPct > 30) return V('hours_night', F.hours_night(hh));
+  if (peak >= 1 && peak < 7) return V('hours_dawn', F.hours_dawn(hh));
+  if (stats.workPct > 40) return V('hours_work', F.hours_work(hh));
+  if (peak >= 9 && peak < 14) return V('hours_morning', F.hours_morning(hh));
+  if (peak >= 14 && peak < 18) return V('hours_afternoon', F.hours_afternoon(hh));
+  if (peak >= 18 && peak < 22) return V('hours_prime', F.hours_prime(hh));
+  return V('hours_late', F.hours_late(hh));
 }
 
 // Los colores de chat suelen ser muy claros; los oscurecemos para que se lean sobre papel.

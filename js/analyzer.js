@@ -1,4 +1,6 @@
 import { readAlias, MAX_AGE } from './alias.js';
+import { choose } from './humor.js';
+import { F } from './frases.js';
 
 // Análisis 100% heurístico (sin IA). Las conclusiones son de broma: listas de palabras,
 // horarios y categorías de juegos convertidas en un "perfil criminal" con aire oficial.
@@ -146,16 +148,17 @@ const quote = (t, max = 70) => `“${t.length > max ? t.slice(0, max - 1) + '…
 const shortDate = (d) => d.toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' });
 
 // "Huellas en el chat": datos curiosos de los mensajes, cada uno con su comentario.
-function evidence(messages, stats, allWords) {
+function evidence(messages, stats, allWords, key) {
   const out = [];
+  const V = (id, list) => choose(list, `${key}:ev_${id}`);
   const safe = messages.filter((m) => m.text && !words(m.text).some(isSensitive) && !/https?:\/\//.test(m.text));
   if (!safe.length) return out;
 
   const byLen = [...safe].sort((a, b) => b.text.length - a.text.length);
   const longest = byLen[0];
-  if (longest.text.length > 25) out.push({ label: 'Declaración más extensa', value: quote(longest.text), note: `${longest.text.length} caracteres de pura literatura` });
+  if (longest.text.length > 25) out.push({ label: 'Declaración más extensa', value: quote(longest.text), note: V('long', F.ev_long(longest.text.length)) });
   const shortest = byLen[byLen.length - 1];
-  if (shortest !== longest && shortest.text.length <= 12) out.push({ label: 'Declaración más escueta', value: quote(shortest.text), note: 'Hemingway estaría orgulloso' });
+  if (shortest !== longest && shortest.text.length <= 12) out.push({ label: 'Declaración más escueta', value: quote(shortest.text), note: V('short', F.ev_short) });
 
   const dated = safe.filter((m) => m.timestamp).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   if (dated.length && dated[0] !== longest && dated[0] !== shortest) {
@@ -166,38 +169,37 @@ function evidence(messages, stats, allWords) {
   const emotes = new Map();
   for (const w of allWords) if (SLANG.twitch.includes(w)) emotes.set(w, (emotes.get(w) || 0) + 1);
   const emote = top(emotes, 1)[0];
-  if (emote) out.push({ label: 'Emote de cabecera', value: emote[0].toUpperCase(), note: `usado ${emote[1]} ${emote[1] === 1 ? 'vez' : 'veces'}` });
+  if (emote) out.push({ label: 'Emote de cabecera', value: emote[0].toUpperCase(), note: V('emote', F.ev_emote(emote[1])) });
 
-  if (stats.laugh) out.push({ label: 'Risa oficial', value: stats.laugh, note: stats.laugh === 'jsjsjs' ? 'generación Z confirmada' : stats.laugh === 'jeje' ? 'risa de tío en la cena de Navidad' : stats.laugh === 'kkkk' ? 'acento brasileño detectado' : 'clásico' });
+  if (stats.laugh) out.push({ label: 'Risa oficial', value: stats.laugh, note: V('laugh', F.ev_laugh[stats.laugh] || F.ev_laugh.other) });
 
   const isLaugh = (w) => /^(?:[jh][aeiou]|js|aj|sj|x+d+|k+)+[jhsdk]?$/i.test(w) || /^(.)\1+$/.test(w);
   const longWord = [...new Set(allWords)].filter((w) => w.length <= 25 && !/\d/.test(w) && !isSensitive(w) && !isLaugh(w)).sort((a, b) => b.length - a.length)[0];
-  if (longWord && longWord.length >= 9) out.push({ label: 'Palabra más larga', value: longWord, note: `${longWord.length} letras: alguien leyó un libro` });
+  if (longWord && longWord.length >= 9) out.push({ label: 'Palabra más larga', value: longWord, note: V('word', F.ev_word(longWord.length)) });
 
   if (stats.hours.some(Boolean)) {
     const h = stats.hours.indexOf(Math.max(...stats.hours));
-    const tag = h < 6 ? 'hora de vampiros' : h < 9 ? 'antes del café' : h < 14 ? 'en horario laboral, ejem' : h < 16 ? 'sobremesa' : h < 21 ? 'prime time' : 'turno de noche';
+    const tag = V('hour', F.ev_hour[h < 6 ? 'vampiro' : h < 9 ? 'cafe' : h < 14 ? 'laboral' : h < 16 ? 'sobremesa' : h < 21 ? 'prime' : 'noche']);
     out.push({ label: 'Hora punta', value: `${h}:00`, note: tag });
     const days = new Array(7).fill(0);
     for (const m of dated) days[new Date(m.timestamp).getDay()]++;
     const d = days.indexOf(Math.max(...days));
-    out.push({ label: 'Día de más actividad', value: WEEKDAYS[d], note: d === 1 ? 'odia los lunes a su manera' : d === 0 || d === 6 ? 'chatero de fin de semana' : 'entre semana, como un profesional' });
+    out.push({ label: 'Día de más actividad', value: WEEKDAYS[d], note: V('day', F.ev_day[d === 1 ? 'lunes' : d === 0 || d === 6 ? 'finde' : 'semana']) });
   }
 
   const avg = Math.round(stats.avgLen);
-  out.push({ label: 'Longitud media', value: `${avg} caracteres`, note: avg < 15 ? 'telegrama' : avg < 40 ? 'tuit de 2009' : avg < 90 ? 'párrafo respetable' : 'ensayo académico' });
+  out.push({ label: 'Longitud media', value: `${avg} caracteres`, note: V('avg', F.ev_avg[avg < 15 ? 'telegrama' : avg < 40 ? 'tuit' : avg < 90 ? 'parrafo' : 'ensayo']) });
 
-  if (stats.capsPct >= 10) out.push({ label: 'Mensajes EN MAYÚSCULAS', value: `${Math.round(stats.capsPct)}%`, note: 'se le rompió el Bloq Mayús' });
-  if (stats.questionPct >= 10) out.push({ label: 'Preguntas', value: `${Math.round(stats.questionPct)}% de los mensajes`, note: 'casi ninguna respondida' });
-  if (stats.emojiPer100 >= 10) out.push({ label: 'Emojis', value: `${Math.round(stats.emojiPer100)} por cada 100 mensajes`, note: 'jeroglíficos modernos' });
+  if (stats.capsPct >= 10) out.push({ label: 'Mensajes EN MAYÚSCULAS', value: `${Math.round(stats.capsPct)}%`, note: V('caps', F.ev_caps) });
+  if (stats.questionPct >= 10) out.push({ label: 'Preguntas', value: `${Math.round(stats.questionPct)}% de los mensajes`, note: V('q', F.ev_q) });
+  if (stats.emojiPer100 >= 10) out.push({ label: 'Emojis', value: `${Math.round(stats.emojiPer100)} por cada 100 mensajes`, note: V('emoji', F.ev_emoji) });
   return out.slice(0, 8);
 }
 
 // Nivel de búsqueda de 0 a 5 estrellas según timeouts y bans.
-const WANTED_LABELS = ['Cuchara: ni pincha ni corta', 'Vigilado', 'Sospechoso', 'Buscado', 'Muy buscado', 'Enemigo público nº 1'];
-function wantedLevel(rec) {
+function wantedLevel(rec, key) {
   const stars = Math.min(5, rec.bans * 2 + (rec.timeouts >= 1) + (rec.timeouts >= 3) + (rec.timeouts >= 6) + (rec.timeouts >= 10) + (rec.longest >= 86400));
-  return { stars, label: WANTED_LABELS[stars] };
+  return { stars, label: choose(F.wanted[stars], `${key}:wanted`) };
 }
 
 function duration(s) {
@@ -210,6 +212,8 @@ function duration(s) {
 
 export function analyze({ user, follows = [], channels = [], messages = [], chatColor = null, moderation = [] }) {
   const n = messages.length;
+  const userKey = user?.login || 'anon';
+  const V = (id, list) => choose(list, `${userKey}:${id}`);
   const allWords = [];
   const wordFreq = new Map();
   const channelFreq = new Map();
@@ -271,7 +275,7 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
     channelCount: channelFreq.size,
   };
   stats.topWords = stats.topWords.filter(([, c]) => c > 1);
-  stats.evidence = evidence(messages, stats, allWords);
+  stats.evidence = evidence(messages, stats, allWords, userKey);
 
   // ---- Idioma y origen
   const langScores = Object.fromEntries(Object.entries(STOPWORDS).map(([k, list]) => [k, rate(list)]));
@@ -284,17 +288,17 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
     .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score);
   let origin;
-  if (lang === 'pt' || regionScores[0]?.name === 'Brasil') origin = 'Brasil (o alguien que ve demasiado a Gaules)';
+  if (lang === 'pt' || regionScores[0]?.name === 'Brasil') origin = V('origin_br', F.origin_br);
   else if (lang === 'es' && regionScores.length) {
     const best = regionScores[0];
     const second = regionScores[1];
-    origin = second && second.score > best.score * 0.7 ? `${best.name}… o ${second.name}. El testigo no está seguro` : best.name;
-  } else if (lang === 'es') origin = 'Territorio hispanohablante sin acento detectable (sospechoso)';
+    origin = second && second.score > best.score * 0.7 ? V('origin_tie', F.origin_tie(best.name, second.name)) : best.name;
+  } else if (lang === 'es') origin = V('origin_es', F.origin_es);
   else origin = `Zona ${LANG_NAMES[lang] || 'desconocida'}`;
 
   // ---- Pistas del alias (mandan sobre las deducciones del chat)
   const alias = readAlias(user);
-  if (alias.country) origin = `${alias.country} (lo pone en su nombre, no hace falta ser detective)`;
+  if (alias.country) origin = V('origin_alias', F.origin_alias(alias.country));
 
   // ---- Juegos
   const gameFreq = new Map();
@@ -330,58 +334,69 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
 
   // ---- Empleo
   let job;
-  if (age < 18) job = 'Estudiante (debería estar haciendo los deberes)';
-  else if (stats.workPct === null) job = 'Indeterminado: el sujeto no deja huellas horarias';
-  else if (stats.nightPct > 35) job = 'Turno de noche, vigilante de seguridad o insomnio crónico';
-  else if (stats.workPct > 45) job = 'Desempleado, estudiante o "teletrabajando" con Twitch en la otra pantalla';
-  else if (stats.workPct > 25) job = 'Empleado con jefe muy permisivo';
-  else if (stats.weekendPct > 50) job = 'Empleado ejemplar: solo chatea los fines de semana';
-  else job = 'Empleado con horario de oficina (chatea al salir del curro)';
+  if (age < 18) job = V('job_student', F.job_student);
+  else if (stats.workPct === null) job = V('job_unknown', F.job_unknown);
+  else if (stats.nightPct > 35) job = V('job_night', F.job_night);
+  else if (stats.workPct > 45) job = V('job_idle', F.job_idle);
+  else if (stats.workPct > 25) job = V('job_lax', F.job_lax);
+  else if (stats.weekendPct > 50) job = V('job_weekend', F.job_weekend);
+  else job = V('job_office', F.job_office);
 
   // ---- Rasgos de personalidad
   const traits = [];
-  if (stats.capsPct > 20) traits.push('GRITA. MUCHO.');
-  if (stats.questionPct > 25) traits.push('Pregunta lo que ya está en el título del directo');
-  if (stats.swearPer1k > 15) traits.push('Lenguaje no apto para horario infantil');
-  if (stats.politePer1k > 15) traits.push('Educado hasta la sospecha');
-  if (stats.emojiPer100 > 30) traits.push('Se comunica principalmente con jeroglíficos');
-  if (rate(SLANG.twitch) > 0.03) traits.push('Habla emote con fluidez nativa');
-  if (stats.avgLen > 70) traits.push('Escribe párrafos en un chat que va a 200 mensajes/s');
-  if (stats.avgLen < 12 && n) traits.push('Monosilábico');
-  if (stats.nightPct > 25) traits.push('Criatura nocturna');
-  if (follows.length > 200) traits.push(`Sigue a ${follows.length} canales. Sin comentarios`);
-  if (follows.length && follows.length < 10) traits.push('Fiel a muy pocos streamers');
-  if (has(SHOOTERS) >= 2) traits.push('Experto en armas (virtuales)');
+  if (stats.capsPct > 20) traits.push(V('caps', F.caps));
+  if (stats.questionPct > 25) traits.push(V('q', F.q));
+  if (stats.swearPer1k > 15) traits.push(V('swear', F.swear));
+  if (stats.politePer1k > 15) traits.push(V('polite', F.polite));
+  if (stats.emojiPer100 > 30) traits.push(V('emoji', F.emoji));
+  if (rate(SLANG.twitch) > 0.03) traits.push(V('emote', F.emote));
+  if (stats.avgLen > 70) traits.push(V('long', F.long));
+  if (stats.avgLen < 12 && n) traits.push(V('short', F.short));
+  if (stats.nightPct > 25) traits.push(V('night', F.night));
+  if (follows.length > 200) traits.push(V('follows', F.follows(follows.length)));
+  if (follows.length && follows.length < 10) traits.push(V('fewfollows', F.fewfollows));
+  if (has(SHOOTERS) >= 2) traits.push(V('guns', F.guns));
   // ---- Antecedentes (timeouts y bans del archivo de logs)
   const rec = criminalRecord(moderation);
   let record;
-  if (!rec.timeouts && !rec.bans) record = 'Sin antecedentes en los canales archivados. Limpio… de momento';
+  if (!rec.timeouts && !rec.bans) record = V('clean', F.clean);
   else {
     const parts = [];
-    if (rec.timeouts) parts.push(`${rec.timeouts} timeout${rec.timeouts > 1 ? 's' : ''} (${duration(rec.seconds)} de silencio forzoso en total)`);
-    if (rec.bans) parts.push(`baneado en ${rec.banChannels.map((c) => '#' + c).join(', ')}`);
+    if (rec.timeouts) parts.push(V('rec_timeouts', F.rec_timeouts(rec.timeouts, duration(rec.seconds))));
+    if (rec.bans) parts.push(V('rec_bans', F.rec_bans(rec.banChannels.map((c) => '#' + c).join(', '))));
     record = parts.join(' · ');
   }
-  if (rec.bans) traits.push(`Desterrado de ${rec.banChannels.length > 1 ? `${rec.banChannels.length} canales` : '#' + rec.banChannels[0]}. Los mods lo conocen por su nombre`);
-  if (rec.timeouts >= 10) traits.push('Reincidente: los mods tienen su nombre en un pósit');
-  else if (rec.timeouts >= 3) traits.push('Visitante habitual del rincón de pensar');
-  else if (rec.timeouts) traits.push('Ha probado el timeout (y no le gustó)');
-  if (rec.longest >= 86400) traits.push(`Su timeout más largo: ${duration(rec.longest)}. Eso ya es una condena`);
+  if (rec.bans) traits.push(V('ban', F.ban(rec.banChannels.length > 1 ? `${rec.banChannels.length} canales` : '#' + rec.banChannels[0])));
+  if (rec.timeouts >= 10) traits.push(V('rec10', F.rec10));
+  else if (rec.timeouts >= 3) traits.push(V('rec3', F.rec3));
+  else if (rec.timeouts) traits.push(V('rec1', F.rec1));
+  if (rec.longest >= 86400) traits.push(V('longTimeout', F.longTimeout(duration(rec.longest))));
+  if (stats.exclaimPct > 35) traits.push(V('exclaim', F.exclaim));
+  if (has(KID_GAMES) >= 2) traits.push(V('g_kid', F.g_kid));
+  if (has(OLD_GAMES) >= 2) traits.push(V('g_old', F.g_old));
+  if (topGames[0] && topGames.length >= 1 && channels.length >= 3) traits.push(V('g_fav', F.g_fav(topGames[0][0])));
+  const topCh = stats.topChannels[0];
+  if (topCh && n >= 50 && topCh[1] / n > 0.6) traits.push(V('loyal', F.loyal(topCh[0])));
+  if (stats.channelCount >= 12) traits.push(V('manychannels', F.manychannels(stats.channelCount)));
+  if (accountYears >= 8) traits.push(V('acct_old', F.acct_old(Math.floor(accountYears))));
+  else if (user?.created_at && accountYears < 0.5) traits.push(V('acct_new', F.acct_new));
+  if (age < 18) traits.push(V('age_young', F.age_young));
+  else if (age > 40) traits.push(V('age_old', F.age_old));
   traits.push(...alias.jokes);
-  if (!traits.length) traits.push('Perfil gris. Demasiado normal. Sospechoso.');
+  if (!traits.length) traits.push(V('gray', F.gray));
 
   const danger = clamp(Math.round(rec.timeouts * 4 + rec.bans * 20 + alias.danger + stats.capsPct * 0.6 + stats.swearPer1k * 1.2 + stats.nightPct * 0.4 + rate(SLANG.twitch) * 300 + (n > 2000 ? 15 : 0)), 3, 99);
 
   // ---- Señas particulares
   const marks = [];
-  if (stats.nightPct > 20) marks.push('Ojeras de quien ve directos a las 4 a. m.');
-  if (stats.laugh) marks.push(`Ríe exclusivamente en formato "${stats.laugh}"`);
-  if (stats.topWords[0]?.[1] > 1) marks.push(`Repite compulsivamente la palabra "${stats.topWords[0][0]}"`);
-  if (follows.length > 50 || n > 1000) marks.push('Marca de auriculares en la cabeza');
-  if (stats.topChannels[0]) marks.push(`Visto con frecuencia en #${stats.topChannels[0][0]}`);
-  if (chatColor) marks.push({ text: `Viste siempre de ${colorName(chatColor)}`, color: chatColor });
+  if (stats.nightPct > 20) marks.push(V('m_night', F.m_night));
+  if (stats.laugh) marks.push(V('m_laugh', F.m_laugh(stats.laugh)));
+  if (stats.topWords[0]?.[1] > 1) marks.push(V('m_word', F.m_word(stats.topWords[0][0])));
+  if (follows.length > 50 || n > 1000) marks.push(V('m_head', F.m_head));
+  if (stats.topChannels[0]) marks.push(V('m_channel', F.m_channel(stats.topChannels[0][0])));
+  if (chatColor) marks.push({ text: V('m_color', F.m_color(colorName(chatColor))), color: chatColor });
   marks.unshift(...alias.marks);
-  if (rec.worst && rec.worst[1] > 1) marks.push(`Fichado en #${rec.worst[0]} (${rec.worst[1]} sanciones)`);
+  if (rec.worst && rec.worst[1] > 1) marks.push(V('m_fichado', F.m_fichado(rec.worst[0], rec.worst[1])));
 
   const seed = hashString(user?.login || 'anon');
 
@@ -397,7 +412,7 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
     alias,
     record,
     criminal: rec,
-    wanted: wantedLevel(rec),
+    wanted: wantedLevel(rec, userKey),
     accountYears,
     job,
     traits,
