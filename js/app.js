@@ -12,6 +12,7 @@ function show(screen) {
   for (const s of document.querySelectorAll('.screen')) s.hidden = s.id !== `screen-${screen}`;
   // La ficha ocupa toda la pantalla: sin cabecera
   document.querySelector('header').hidden = screen === 'result';
+  $('btn-logout').hidden = !state.token;
   if (screen === 'result') scrollTo(0, 0);
 }
 
@@ -57,7 +58,6 @@ async function investigate() {
 function render(subject = state) {
   const profile = analyze(subject);
   const own = subject === state;
-  $('btn-menu').hidden = !own;
   $('btn-back-followers').hidden = own;
   $('btn-back-top').textContent = own ? '← Volver al inicio' : '← Volver a los seguidores';
   const { stats, user } = profile;
@@ -257,7 +257,6 @@ function showMenu() {
   $('menu-name').textContent = state.user?.display_name || 'agente';
   show('menu');
 }
-$('btn-menu').onclick = showMenu;
 $('btn-back-top').onclick = () => ($('btn-back-followers').hidden ? showMenu() : $('btn-back-followers').click());
 $('btn-menu-me').onclick = () => investigate().catch(fail);
 $('btn-menu-demo').onclick = () => openDemo().catch(fail);

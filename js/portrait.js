@@ -73,9 +73,9 @@ function params(profile) {
 
   let hair;
   if (f.shooter && r() < 0.5) hair = 'cap';
-  else if (f.old) hair = pick(['receding', 'bald', 'short', 'buzz']);
-  else if (f.young) hair = pick(['messy', 'spiky', 'curly', 'long', 'beanie', 'cap']);
-  else hair = pick(['short', 'messy', 'curly', 'long', 'buzz', 'beanie']);
+  else if (f.old) hair = pick(['receding', 'bald', 'short', 'buzz', 'fringe']);
+  else if (f.young) hair = pick(['messy', 'spiky', 'curly', 'long', 'beanie', 'cap', 'mohawk', 'afro', 'bun', 'fringe', 'fringe']);
+  else hair = pick(['short', 'messy', 'curly', 'long', 'buzz', 'beanie', 'fringe', 'afro', 'bun', 'mohawk']);
   if (f.bald) hair = 'bald';
 
   let mouth;
@@ -85,8 +85,8 @@ function params(profile) {
   else if (f.polite) mouth = 'smile';
   else mouth = pick(['neutral', 'smirk', 'smile']);
 
-  const ey = between(0.04, 0.1);
-  const noseLen = between(0.28, 0.38);
+  const ey = between(0.02, 0.12);
+  const noseLen = between(0.22, 0.44);
   const beard = f.beard || (!f.young && r() < (f.old ? 0.65 : 0.4));
   // complexión confesada en el alias (gordo_…, flaco_…)
   const build = f.fat ? 1.16 : f.thin ? 0.88 : 1;
@@ -98,22 +98,34 @@ function params(profile) {
   return {
     fat: f.fat,
     thin: f.thin,
-    w: between(0.92, 1.06) * build,
-    jaw: between(0.85, 1.12) * jawBuild,
-    eg: between(0.25, 0.3),
+    w: between(0.84, 1.14) * build,
+    hh: between(0.9, 1.1),
+    jaw: between(0.74, 1.22) * jawBuild,
+    jl: between(0.5, 0.72),
+    chinW: between(0.08, 0.32),
+    chinR: between(0.11, 0.21),
+    cheekR: f.fat ? 0.27 : between(0.14, 0.26),
+    earS: between(0.75, 1.4),
+    earOut: between(0, 0.05),
+    eg: between(0.22, 0.33),
     ey,
     ez: 0.66,
-    eyeR: 0.12 + (f.shouter ? 0.012 : 0),
+    eyeR: between(0.1, 0.135) + (f.shouter ? 0.012 : 0),
     look: (r() - 0.5) * 0.5,
     noseLen,
-    noseSize: between(0.9, 1.25),
+    noseSize: between(0.72, 1.45),
+    noseW: between(0.75, 1.5),
     my: ey - noseLen - between(0.14, 0.18),
-    mw: between(0.17, 0.22),
-    skin: between(0.66, 0.8),
+    mw: between(0.14, 0.27),
+    lipT: between(0.65, 1.5),
+    browT: between(0.02, 0.046),
+    mustT: between(0.018, 0.045),
+    beardStyle: pick(['full', 'full', 'goatee']),
+    skin: between(0.56, 0.84),
     hair,
     hairTone,
-    hl: between(0.52, 0.62) + (f.old ? 0.08 : 0),
-    brow: f.angry ? 'angry' : f.curious ? 'raised' : pick(['flat', 'arched', 'flat']),
+    hl: (hair === 'fringe' ? ey + 0.34 : between(0.45, 0.68)) + (f.old ? 0.08 : 0),
+    brow: f.angry ? 'angry' : f.curious ? 'raised' : pick(['flat', 'arched', 'flat', 'raised', 'angry']),
     eyes: f.nightOwl ? 'sleepy' : f.shouter ? 'wide' : 'normal',
     bags: f.nightOwl,
     glasses: f.angry && f.shouter && r() < 0.5 ? 'shades' : f.nerd || f.glasses ? pick(['round', 'square']) : null,
@@ -134,19 +146,19 @@ function params(profile) {
 const M = { skin: 0, lips: 1, teeth: 2, eye: 3, hair: 4, hat: 5, frame: 6, lens: 7, phones: 8, shirt: 9 };
 
 function makeScene(P) {
-  const { w, jaw, eg, ey, ez, eyeR, noseLen, noseSize, my, mw, hl } = P;
+  const { w, hh, jaw, eg, ey, ez, eyeR, noseLen, noseSize, my, mw, hl } = P;
   const noseTipY = ey - noseLen;
   const noseTipZ = 0.86 + noseLen * 0.5;
   const lidH = P.eyes === 'sleepy' ? 0.005 : P.eyes === 'wide' ? 0.1 : 0.07;
   const curve = { smile: 0.9, grin: 1.1, shout: 0.2, frown: -0.8, smirk: 0.35, neutral: 0.12 }[P.mouth];
   const asym = P.mouth === 'smirk' ? 0.22 : 0;
   const open = { grin: 0.035, shout: 0.1 }[P.mouth] || 0;
-  const thick = { short: 0.06, messy: 0.1, spiky: 0.07, curly: 0.15, long: 0.07, buzz: 0.018, receding: 0.05, bald: 0.05, cap: 0.04, beanie: 0.03 }[P.hair];
+  const thick = { short: 0.06, messy: 0.1, spiky: 0.07, curly: 0.15, long: 0.07, buzz: 0.018, receding: 0.05, bald: 0.05, cap: 0.04, beanie: 0.03, mohawk: 0.15, afro: 0.07, bun: 0.06, fringe: 0.075 }[P.hair];
   // desplazamientos de las cejas: [interior, centro, exterior]
   const brow = { flat: [0, 0.01, 0], arched: [-0.01, 0.04, -0.01], angry: [-0.05, 0, 0.04], raised: [0.03, 0.06, 0] }[P.brow];
 
   // z de la superficie de la frente/cara (para apoyar cejas y gafas)
-  const surfZ = (x, y) => 0.84 * Math.sqrt(Math.max(0, 1 - ((y - 0.12) / 0.92) ** 2 - (x / (0.74 * w)) ** 2)) - 0.02;
+  const surfZ = (x, y) => 0.84 * Math.sqrt(Math.max(0, 1 - ((y - 0.12) / (0.92 * hh)) ** 2 - (x / (0.74 * w)) ** 2)) - 0.02;
 
   const cavity = (x, yy, z) => sdEllipsoid(x, yy + open * 0.3, z - 0.9, mw * 0.82, open, 0.3);
 
@@ -164,27 +176,27 @@ function makeScene(P) {
     if (bound > 0.15 && !wantMat) return Math.min(shirt, neck, bound);
 
     // ---- piel
-    let skin = sdEllipsoid(x, y - 0.12, z + 0.02, 0.74 * w, 0.92, 0.86);
-    skin = smin(skin, sdEllipsoid(x, y + 0.36, z - 0.1, 0.6 * jaw, 0.62, 0.68), 0.3);
-    skin = smin(skin, sdSphere(x, y + 0.86, z - 0.4, 0.17), 0.2);
-    skin = smin(skin, sdSphere(ax - 0.4 * w, y + 0.06, z - 0.47, P.fat ? 0.27 : 0.2), 0.2);
+    let skin = sdEllipsoid(x, y - 0.12, z + 0.02, 0.74 * w, 0.92 * hh, 0.86);
+    skin = smin(skin, sdEllipsoid(x, y + 0.36, z - 0.1, 0.6 * jaw, P.jl, 0.68), 0.3);
+    skin = smin(skin, sdEllipsoid(x, y + 0.24 + P.jl, z - 0.4, P.chinW, P.chinR, 0.17), 0.2);
+    skin = smin(skin, sdSphere(ax - 0.4 * w, y + 0.06, z - 0.47, P.cheekR), 0.2);
     if (P.fat) skin = smin(skin, sdEllipsoid(x, y + 0.98, z - 0.22, 0.45, 0.17, 0.32), 0.15); // papada
     if (P.thin) skin = smax(skin, -sdSphere(ax - 0.47 * w, y + 0.28, z - 0.64, 0.08), 0.12); // mejillas hundidas
     skin = smin(skin, sdCapsule(x, y, z, -0.4, ey + 0.2, 0.64, 0.4, ey + 0.2, 0.64, 0.07), 0.15);
     skin = smin(skin, sdEllipsoid(x, y - (my - 0.02), z - 0.66, 0.3, 0.22, 0.22), 0.15);
     skin = smax(skin, -sdSphere(ax - eg, y - ey, z - 0.8, 0.17), 0.1);
     skin = smin(skin, sdCapsule(x, y, z, 0, ey - 0.02, 0.8, 0, noseTipY + 0.03, noseTipZ - 0.05, 0.05 * noseSize, 0.075 * noseSize), 0.07);
-    skin = smin(skin, sdSphere(ax - 0.08 * noseSize, y - (noseTipY + 0.01), z - (noseTipZ - 0.1), 0.06 * noseSize), 0.04);
+    skin = smin(skin, sdSphere(ax - 0.075 * P.noseW, y - (noseTipY + 0.01), z - (noseTipZ - 0.1), 0.06 * noseSize), 0.04);
     skin = smax(skin, -sdSphere(ax - 0.045, y - (noseTipY - 0.03), z - (noseTipZ - 0.07), 0.026), 0.015);
-    skin = smin(skin, sdEllipsoid(ax - 0.72 * w, y, z + 0.02, 0.07, 0.21, 0.13), 0.06);
-    skin = smax(skin, -sdEllipsoid(ax - 0.77 * w, y, z, 0.03, 0.13, 0.07), 0.02);
+    skin = smin(skin, sdEllipsoid(ax - 0.72 * w - P.earOut, y, z + 0.02, 0.07, 0.21 * P.earS, 0.13 * P.earS), 0.06);
+    skin = smax(skin, -sdEllipsoid(ax - 0.77 * w - P.earOut, y, z, 0.03, 0.13 * P.earS, 0.07 * P.earS), 0.02);
     skin = smin(skin, neck, 0.15);
     skin = Math.min(skin, Math.max(sdSphere(ax - eg, y - ey, z - ez, eyeR + 0.018), ey + lidH - y)); // párpado
     if (P.bags) skin = smin(skin, sdCapsule(ax, y, z, eg - 0.08, ey - 0.13, ez + 0.07, eg + 0.08, ey - 0.12, ez + 0.05, 0.022), 0.03);
 
     // ---- boca
     const yy = y - my - curve * x * x - asym * x;
-    let lips = Math.min(sdEllipsoid(x, yy - 0.035, z - 0.87, mw, 0.04, 0.07), sdEllipsoid(x, yy + 0.045, z - 0.86, mw * 0.92, 0.05, 0.075));
+    let lips = Math.min(sdEllipsoid(x, yy - 0.035, z - 0.87, mw, 0.04 * P.lipT, 0.07), sdEllipsoid(x, yy + 0.045, z - 0.86, mw * 0.92, 0.05 * P.lipT, 0.075));
     let teeth = 1e9;
     if (open) {
       const cav = cavity(x, yy, z);
@@ -204,11 +216,11 @@ function makeScene(P) {
     const bm = [eg + 0.01, ey + 0.2 + brow[1]];
     const bo = [eg + 0.13, ey + 0.16 + brow[2]];
     hair = Math.min(
-      sdCapsule(ax, y, z, bi[0], bi[1], surfZ(bi[0], bi[1]) + 0.01, bm[0], bm[1], surfZ(bm[0], bm[1]) + 0.01, 0.03),
-      sdCapsule(ax, y, z, bm[0], bm[1], surfZ(bm[0], bm[1]) + 0.01, bo[0], bo[1], surfZ(bo[0], bo[1]) + 0.01, 0.03, 0.022),
+      sdCapsule(ax, y, z, bi[0], bi[1], surfZ(bi[0], bi[1]) + 0.01, bm[0], bm[1], surfZ(bm[0], bm[1]) + 0.01, P.browT),
+      sdCapsule(ax, y, z, bm[0], bm[1], surfZ(bm[0], bm[1]) + 0.01, bo[0], bo[1], surfZ(bo[0], bo[1]) + 0.01, P.browT, P.browT * 0.75),
     );
 
-    const shellAt = (t) => sdEllipsoid(x, y - 0.12, z + 0.02, 0.74 * w + t, 0.92 + t, 0.86 + t);
+    const shellAt = (t) => sdEllipsoid(x, y - 0.12, z + 0.02, 0.74 * w + t, 0.92 * hh + t, 0.86 + t);
     let cut = hl - 0.75 * clamp(0.25 - z, 0, 1.3) - 0.22 * smooth(0.45, 0.72, ax);
     if (P.hair === 'receding') cut += 0.22 * smooth(0.12, 0.42, ax) * clamp(z * 2, 0, 1);
     let scalp = smax(shellAt(thick), cut - y, 0.04);
@@ -219,20 +231,27 @@ function makeScene(P) {
       const s = Math.max(0, Math.sin(Math.atan2(x, z) * 8) * Math.sin(y * 10 + 1));
       scalp -= 0.13 * s * s * clamp((y - 0.3) * 2, 0, 1);
     }
+    if (P.hair === 'mohawk') scalp = smax(scalp, ax - 0.12, 0.03) - 0.05 * clamp((y - 0.4) * 2, 0, 1);
+    if (P.hair === 'afro') {
+      scalp = smax(sdEllipsoid(x, y - 0.3, z + 0.08, 0.98 * w, 1.08, 1.0), cut - y, 0.06);
+      scalp += 0.03 * Math.sin(x * 28) * Math.sin(y * 28) * Math.sin(z * 28);
+    }
     if (P.hair === 'long') scalp = smin(scalp, smax(sdEllipsoid(x, y + 0.45, z + 0.32, 0.86 * w, 1.15, 0.52), z - 0.3, 0.05), 0.1);
     hair = Math.min(hair, scalp);
-    if (P.hair !== 'bald') hair = smin(hair, sdCapsule(ax, y, z, 0.69 * w, hl - 0.3, 0.12, 0.7 * w, 0.05, 0.16, 0.035), 0.04);
+    if (P.hair === 'bun') hair = smin(hair, sdSphere(x, y - 1.1, z + 0.3, 0.22) + 0.01 * noise3(x * 20, y * 20, z * 20), 0.08);
+    if (P.hair !== 'bald' && P.hair !== 'mohawk' && P.hair !== 'afro') hair = smin(hair, sdCapsule(ax, y, z, 0.69 * w, hl - 0.3, 0.12, 0.7 * w, 0.05, 0.16, 0.035), 0.04);
 
     if (P.beard) {
-      let b = sdEllipsoid(x, y + 0.36, z - 0.1, 0.6 * jaw + 0.08, 0.7, 0.76);
-      b = smin(b, sdSphere(x, y + 0.9, z - 0.42, 0.22), 0.15);
+      let b = sdEllipsoid(x, y + 0.36, z - 0.1, 0.6 * jaw + 0.08, P.jl + 0.08, 0.76);
+      b = smin(b, sdEllipsoid(x, y + 0.28 + P.jl, z - 0.42, P.chinW + 0.05, P.chinR + 0.05, 0.22), 0.15);
+      if (P.beardStyle === 'goatee') b = sdEllipsoid(x, y + 0.28 + P.jl - 0.04, z - 0.42, 0.2 + P.chinW * 0.4, P.chinR + 0.12, 0.24);
       b = smax(b, y - (noseTipY - 0.08), 0.05);
       b = smax(b, -0.25 - z, 0.05);
       b = smax(b, -sdEllipsoid(x, y - my, z - 0.92, mw * 1.05, 0.085, 0.25), 0.03);
       hair = Math.min(hair, b + 0.015 * noise3(x * 25, y * 25, z * 25));
     }
     if (P.mustache) {
-      hair = Math.min(hair, sdCapsule(ax, y, z, 0, my + 0.085, 0.95, mw + 0.03, my + 0.02, 0.86, 0.03, 0.02) + 0.008 * noise3(x * 40, y * 40, z * 40));
+      hair = Math.min(hair, sdCapsule(ax, y, z, 0, my + 0.085, 0.95, mw + 0.03, my + 0.02, 0.86, P.mustT, P.mustT * 0.7) + 0.008 * noise3(x * 40, y * 40, z * 40));
     }
 
     // ---- gorra / gorro
