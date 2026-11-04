@@ -14,17 +14,6 @@ export function shareText(profile) {
   return `La Brigada de Delitos en el Chat ha hecho mi retrato robot: ${name}, peligrosidad ${profile.danger}/100. ${level}. ¿Y el tuyo?`;
 }
 
-export function socialLinks(profile) {
-  const text = encodeURIComponent(shareText(profile));
-  const url = encodeURIComponent(shareUrl());
-  return {
-    x: `https://twitter.com/intent/tweet?text=${text}&url=${url}`,
-    whatsapp: `https://wa.me/?text=${text}%20${url}`,
-    telegram: `https://t.me/share/url?url=${url}&text=${text}`,
-    reddit: `https://www.reddit.com/submit?url=${url}&title=${text}`,
-  };
-}
-
 // Ajusta el texto a un ancho máximo y devuelve las líneas.
 function wrap(g, text, maxW) {
   const out = [];

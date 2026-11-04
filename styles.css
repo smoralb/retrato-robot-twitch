@@ -191,3 +191,9 @@ li { margin-bottom: 4px; }
 .share { background: var(--paper); margin-top: 16px; padding: 16px 20px; text-align: center; box-shadow: 0 10px 30px rgba(0, 0, 0, .5); }
 .share h3 { margin: 0; font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; color: var(--red); }
 a.btn { text-decoration: none; display: inline-block; }
+#followers-search { width: 100%; font: inherit; font-size: 1.1rem; padding: 12px 14px; border: 2px solid var(--ink); background: #f7f2e6; }
+#screen-followers .card { text-align: center; }
+.followers { list-style: none; margin: 8px 0 16px; padding: 0; text-align: left; max-height: 55vh; overflow-y: auto; }
+.followers li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-bottom: 1px dashed var(--paper-dark); cursor: pointer; }
+.followers li:hover, .followers li:focus { background: rgba(179, 38, 30, .12); outline: none; }
+.followers small { opacity: .6; white-space: nowrap; }

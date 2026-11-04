@@ -67,6 +67,24 @@
       </div>
     </section>
 
+    <!-- 2c. Modo streamer: buscador de seguidores -->
+    <section id="screen-followers" class="screen" hidden>
+      <div class="card">
+        <div class="lead">
+          <span class="lead-tag">Modo streamer</span>
+          <h2>Busca a tus <span class="hl-red">seguidores</span> y échate unas risas</h2>
+        </div>
+        <input id="followers-search" type="search" placeholder="Escribe el nombre de un seguidor…" autocomplete="off">
+        <p id="followers-info" class="small"></p>
+        <ul id="followers-list" class="followers"></ul>
+        <p class="small">Solo se usan los mensajes que cada seguidor ha escrito en tu canal, y solo si tu canal aparece en el archivo público de logs.</p>
+        <div class="row">
+          <button id="btn-followers-refresh" class="btn ghost">Recargar seguidores</button>
+          <button id="btn-followers-back" class="btn ghost">Volver a mi expediente</button>
+        </div>
+      </div>
+    </section>
+
     <!-- 3. Resultado -->
     <section id="screen-result" class="screen" hidden>
       <article class="file">
@@ -134,15 +152,14 @@
         <h3>Comparte tu retrato</h3>
         <div class="row">
           <button id="btn-share-native" class="btn" hidden>Compartir…</button>
-          <a id="share-x" class="btn ghost" target="_blank" rel="noopener">X</a>
-          <a id="share-whatsapp" class="btn ghost" target="_blank" rel="noopener">WhatsApp</a>
-          <a id="share-telegram" class="btn ghost" target="_blank" rel="noopener">Telegram</a>
-          <a id="share-reddit" class="btn ghost" target="_blank" rel="noopener">Reddit</a>
+          <button id="btn-copy-image" class="btn">Copiar imagen</button>
           <button id="btn-download" class="btn ghost">Descargar imagen</button>
         </div>
-        <p class="small">Las redes reciben solo el texto y el enlace. Para subir la imagen, descárgala o usa «Compartir…» en el móvil.</p>
+        <p class="small">Copia o descarga la imagen y pégala donde quieras: Twitch, Discord, WhatsApp, X… En el móvil, «Compartir…» la envía directamente a cualquier app.</p>
       </div>
       <div class="row">
+        <button id="btn-followers" class="btn">Modo streamer: buscar a mis seguidores</button>
+        <button id="btn-back-followers" class="btn" hidden>← Volver a los seguidores</button>
         <button id="btn-logout" class="btn ghost">Cerrar sesión</button>
       </div>
     </section>

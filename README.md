@@ -16,6 +16,12 @@ Web estática (HTML + JS, sin backend ni IA) que genera un retrato robot en ASCI
 5. **Retrato** (`js/portrait.js`): cara ASCII montada por piezas (pelo, cejas, ojos, gafas,
    barba, cascos…) según esos rasgos, con semilla por usuario para que siempre salga igual.
 
+## Modo streamer
+
+Desde tu expediente, el botón **Modo streamer** carga tus seguidores y te da un buscador: eliges a
+uno y se genera su retrato con los mensajes que ha escrito en tu canal (necesita que tu canal esté en
+logs.ivr.fi). Pide un permiso extra a Twitch, `moderator:read:followers`, solo cuando pulsas el botón.
+
 ## Puesta en marcha
 
 1. Crea una app en <https://dev.twitch.tv/console/apps>:

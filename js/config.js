@@ -16,4 +16,5 @@ export const LIMITS = {
   maxLogChannels: 15,   // canales de los que bajar logs
   monthsPerChannel: 3,  // meses de historial por canal
   concurrency: 4,
+  maxFollowers: 5000,   // seguidores a cargar en el modo streamer
 };

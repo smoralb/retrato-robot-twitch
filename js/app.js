@@ -6,7 +6,7 @@ import { analyze } from './analyzer.js';
 import { renderPortrait } from './portrait.js';
 
 const $ = (id) => document.getElementById(id);
-const state = { token: null, user: null, follows: [], channels: [], chatColor: null, messages: [], moderation: [] };
+const state = { ownDone: false, followers: [], token: null, user: null, follows: [], channels: [], chatColor: null, messages: [], moderation: [] };
 
 function show(screen) {
   for (const s of document.querySelectorAll('.screen')) s.hidden = s.id !== `screen-${screen}`;
@@ -50,11 +50,15 @@ async function investigate() {
   log(`Total: ${state.messages.length} mensajes y ${state.moderation.length} sanciones recuperados`);
 
   if (!state.messages.length && !state.moderation.length) return show('paste');
+  state.ownDone = true;
   render();
 }
 
-function render() {
-  const profile = analyze(state);
+function render(subject = state) {
+  const profile = analyze(subject);
+  const own = subject === state;
+  $('btn-followers').hidden = !own;
+  $('btn-back-followers').hidden = own;
   const { stats, user } = profile;
 
   const ink = darken(profile.chatColor);
@@ -81,8 +85,6 @@ function render() {
   $('wanted-stamp').classList.toggle('meh', clean);
   $('wanted-stars').hidden = clean;
   $('msg-count').textContent = stats.messages;
-  const links = share.socialLinks(profile);
-  for (const k of Object.keys(links)) $(`share-${k}`).href = links[k];
   const PROFILE_JOKES = [
     'Ninguno es el bueno.',
     'Ambos perfiles coinciden: es feo por los dos lados.',
@@ -144,6 +146,98 @@ function render() {
   show('result');
 }
 
+// ---------- Modo streamer: buscador de seguidores ----------
+
+const SHOWN = 40;
+
+function renderFollowers() {
+  const q = $('followers-search').value.trim().toLowerCase().replace(/^@/, '');
+  const hits = state.followers.filter((f) => !q || f.user_login.includes(q) || f.user_name.toLowerCase().includes(q));
+  const items = hits.slice(0, SHOWN).map((f) => {
+    const li = document.createElement('li');
+    li.tabIndex = 0;
+    const name = document.createElement('span');
+    name.textContent = f.user_name;
+    const since = document.createElement('small');
+    since.textContent = `desde ${new Date(f.followed_at).toLocaleDateString('es')}`;
+    li.append(name, since);
+    const go = () => investigateFollower({ id: f.user_id, login: f.user_login });
+    li.onclick = go;
+    li.onkeydown = (e) => { if (e.key === 'Enter') go(); };
+    return li;
+  });
+  if (!hits.length && /^\w{1,25}$/.test(q)) {
+    const li = document.createElement('li');
+    li.tabIndex = 0;
+    li.textContent = `No aparece en la lista. Investigar a «${q}» igualmente`;
+    li.onclick = () => investigateFollower({ login: q });
+    items.push(li);
+  }
+  $('followers-list').replaceChildren(...items);
+  $('followers-info').textContent = hits.length > SHOWN
+    ? `${hits.length} coincidencias de ${state.followers.length} seguidores: se muestran las ${SHOWN} más recientes. Sigue escribiendo para afinar.`
+    : `${hits.length} de ${state.followers.length} seguidores cargados`;
+}
+
+async function openFollowers(reload = false) {
+  if (!twitch.hasScope(twitch.FOLLOWERS_SCOPE)) {
+    return twitch.login({ scopes: [twitch.FOLLOWERS_SCOPE], mode: 'followers' });
+  }
+  if (!state.user) state.user = await twitch.getMe(state.token);
+  if (!state.followers.length || reload) {
+    show('loading');
+    $('log').textContent = '';
+    log('Pasando lista de seguidores…');
+    try {
+      const { followers, total } = await twitch.getFollowers(state.token, state.user.id, LIMITS.maxFollowers, (n, t) => {
+        $('log').textContent = `> Pasando lista de seguidores… ${n}/${t}\n`;
+      });
+      state.followers = followers;
+      if (!total) throw new Error('Todavía no tienes seguidores. Cuando los tengas, vuelve por aquí.');
+    } catch (err) {
+      // 400/401/403: el permiso no se ha concedido o ha cambiado
+      if (/\b(400|403)\b/.test(err.message)) err.message = 'Twitch no nos deja leer tus seguidores. Vuelve a entrar y acepta el permiso.';
+      throw err;
+    }
+  }
+  $('followers-search').value = '';
+  renderFollowers();
+  show('followers');
+  $('followers-search').focus();
+}
+
+async function investigateFollower({ id, login }) {
+  show('loading');
+  $('log').textContent = '';
+  log(`Abriendo expediente de ${login}…`);
+  try {
+    const user = await twitch.getUserByLogin(state.token, login);
+    if (!user) throw new Error(`No existe ningún usuario llamado «${login}».`);
+    log(`Sujeto identificado: ${user.display_name}`);
+    const [chatColor, channels] = await Promise.all([
+      twitch.getChatColor(state.token, user.id).catch(() => null),
+      twitch.getChannels(state.token, [state.user.id]).catch(() => []),
+    ]);
+    log('Interrogando a testigos (archivo de logs)…');
+    const logs = await fetchUserMessages(user.login, [state.user.login], log).catch((e) => {
+      log(`El archivo de logs no responde (${e.message})`);
+      return { messages: [], moderation: [] };
+    });
+    log(`Total: ${logs.messages.length} mensajes y ${logs.moderation.length} sanciones recuperados`);
+    render({ user, follows: [], channels, chatColor, messages: logs.messages, moderation: logs.moderation });
+  } catch (err) {
+    console.error(err);
+    show('followers');
+    $('followers-info').textContent = err.message || String(err);
+  }
+}
+
+$('btn-followers').onclick = () => openFollowers().catch(fail);
+$('btn-followers-refresh').onclick = () => openFollowers(true).catch(fail);
+$('btn-followers-back').onclick = () => (state.ownDone ? render() : investigate().catch(fail));
+$('btn-back-followers').onclick = () => { renderFollowers(); show('followers'); };
+$('followers-search').oninput = renderFollowers;
+
 // Los elementos pueden ser texto o { text, color } para añadir una muestra del color.
 function fillList(id, items) {
   $(id).replaceChildren(...items.map((t) => {
@@ -189,13 +283,24 @@ $('btn-login').onclick = () => {
   $('config-warning').classList.add('flash');
   setTimeout(() => $('config-warning').classList.remove('flash'), 600);
 };
-$('btn-paste').onclick = () => { state.messages = parsePasted($('paste').value); render(); };
-$('btn-skip').onclick = () => render();
+$('btn-paste').onclick = () => { state.messages = parsePasted($('paste').value); state.ownDone = true; render(); };
+$('btn-skip').onclick = () => { state.ownDone = true; render(); };
 
 async function currentImage() {
   const p = state.profile;
   return share.toBlob(share.buildImage(p, state.views, darken(p.chatColor), $('profiles-joke').textContent));
 }
+$('btn-copy-image').onclick = async () => {
+  const btn = $('btn-copy-image');
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': currentImage() })]);
+    btn.textContent = '¡Copiada!';
+  } catch {
+    share.download(await currentImage());
+    btn.textContent = 'Copia no disponible: descargada';
+  }
+  setTimeout(() => (btn.textContent = 'Copiar imagen'), 2000);
+};
 $('btn-download').onclick = async () => share.download(await currentImage());
 $('btn-share-native').onclick = async () => {
   const blob = await currentImage();
@@ -211,9 +316,11 @@ $('btn-logout').onclick = async () => {
 (async function init() {
   $('config-warning').hidden = twitch.isConfigured();
   $('redirect-hint').textContent = twitch.redirectUri();
+  const mode = twitch.takeMode();
   try {
     state.token = twitch.consumeRedirect() || twitch.storedToken();
-    if (state.token) await investigate();
+    if (state.token && mode === 'followers') await openFollowers();
+    else if (state.token) await investigate();
   } catch (err) {
     fail(err);
   }

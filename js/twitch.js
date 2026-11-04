@@ -4,6 +4,9 @@ const API = 'https://api.twitch.tv/helix';
 const SCOPES = ['user:read:follows'];
 const TOKEN_KEY = 'rr_token';
 const STATE_KEY = 'rr_state';
+const SCOPES_KEY = 'rr_scopes';
+const MODE_KEY = 'rr_mode';
+export const FOLLOWERS_SCOPE = 'moderator:read:followers';
 
 export function redirectUri() {
   // Sin "index.html" para que /repo/ y /repo/index.html usen la misma Redirect URL registrada.
@@ -14,17 +17,19 @@ export function isConfigured() {
   return TWITCH_CLIENT_ID && !TWITCH_CLIENT_ID.startsWith('PON_AQUI');
 }
 
-export function login() {
+// scopes: permisos extra (p. ej. ver seguidores). mode: se recuerda tras volver de Twitch.
+export function login({ scopes = [], mode = null } = {}) {
   const state = crypto.randomUUID();
   sessionStorage.setItem(STATE_KEY, state);
   const params = new URLSearchParams({
     response_type: 'token',
     client_id: TWITCH_CLIENT_ID,
     redirect_uri: redirectUri(),
-    scope: SCOPES.join(' '),
+    scope: [...SCOPES, ...scopes].join(' '),
     state,
     force_verify: 'true',
   });
+  if (mode) sessionStorage.setItem(MODE_KEY, mode);
   location.href = `https://id.twitch.tv/oauth2/authorize?${params}`;
 }
 
@@ -39,6 +44,7 @@ export function consumeRedirect() {
   if (!expected || params.get('state') !== expected) throw new Error('El parámetro state no coincide. Vuelve a iniciar sesión.');
   const token = params.get('access_token');
   sessionStorage.setItem(TOKEN_KEY, token);
+  sessionStorage.setItem(SCOPES_KEY, params.get('scope') || '');
   return token;
 }
 
@@ -46,8 +52,20 @@ export function storedToken() {
   return sessionStorage.getItem(TOKEN_KEY);
 }
 
+export function hasScope(scope) {
+  return (sessionStorage.getItem(SCOPES_KEY) || '').split(' ').includes(scope);
+}
+
+// Devuelve (y borra) el modo guardado antes de ir a Twitch.
+export function takeMode() {
+  const m = sessionStorage.getItem(MODE_KEY);
+  sessionStorage.removeItem(MODE_KEY);
+  return m;
+}
+
 export async function logout(token) {
   sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(SCOPES_KEY);
   if (!token) return;
   const body = new URLSearchParams({ client_id: TWITCH_CLIENT_ID, token });
   await fetch('https://id.twitch.tv/oauth2/revoke', { method: 'POST', body }).catch(() => {});
@@ -96,4 +114,26 @@ export async function getChannels(token, ids) {
 export async function getChatColor(token, userId) {
   const { data } = await helix(`/chat/color?user_id=${userId}`, token);
   return data[0]?.color || null;
+}
+
+export async function getUserByLogin(token, login) {
+  const { data } = await helix(`/users?login=${encodeURIComponent(login)}`, token);
+  return data[0] || null;
+}
+
+// Seguidores del canal del usuario (requiere moderator:read:followers). Más recientes primero.
+export async function getFollowers(token, broadcasterId, max, onProgress) {
+  const out = [];
+  let cursor = '';
+  let total = 0;
+  do {
+    const q = new URLSearchParams({ broadcaster_id: broadcasterId, first: '100' });
+    if (cursor) q.set('after', cursor);
+    const page = await helix(`/channels/followers?${q}`, token);
+    total = page.total ?? total;
+    out.push(...page.data);
+    cursor = page.pagination?.cursor;
+    onProgress?.(out.length, total);
+  } while (cursor && out.length < max);
+  return { followers: out.slice(0, max), total };
 }
