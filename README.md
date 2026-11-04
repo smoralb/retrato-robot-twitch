@@ -18,7 +18,7 @@ Web estática (HTML + JS, sin backend ni IA) que genera un retrato robot en ASCI
 
 ## Modo streamer
 
-Desde tu expediente, el botón **Modo streamer** carga tus seguidores y te da un buscador: eliges a
+Tras iniciar sesión, el menú ofrece **Ver a otros detenidos**: carga tus seguidores y te da un buscador: eliges a
 uno y se genera su retrato con los mensajes que ha escrito en tu canal (necesita que tu canal esté en
 logs.ivr.fi). Pide un permiso extra a Twitch, `moderator:read:followers`, solo cuando pulsas el botón.
 

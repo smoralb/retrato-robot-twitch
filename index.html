@@ -45,6 +45,31 @@
       </div>
     </section>
 
+    <!-- 1b. Menú tras iniciar sesión -->
+    <section id="screen-menu" class="screen" hidden>
+      <div class="card">
+        <div class="lead">
+          <span class="lead-tag">Sesión iniciada · Comisaría</span>
+          <h2>Bienvenido, <span class="hl-twitch" id="menu-name">agente</span>. ¿A quién <span class="hl-red">interrogamos</span> hoy?</h2>
+        </div>
+        <div class="menu-options">
+          <button id="btn-menu-me" class="menu-option">
+            <b>Ver mi retrato robot</b>
+            <span>Descubre qué cara tienes según lo que escribes. Spoiler: no te va a gustar.</span>
+          </button>
+          <button id="btn-menu-others" class="menu-option">
+            <b>Ver a otros detenidos</b>
+            <span>Para streamers: busca a tus seguidores en directo y échate unas risas con la comunidad. Sin piedad.</span>
+            <small>Te pediremos un permiso extra a Twitch para leer tu lista de seguidores.</small>
+          </button>
+          <button id="btn-menu-demo" class="menu-option demo">
+            <b>Detenidos de ejemplo</b>
+            <span>¿Sin seguidores para probar? Carga a ~800 usuarios reales del chat de un canal público y busca entre ellos.</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- 2. Cargando -->
     <section id="screen-loading" class="screen" hidden>
       <div class="card terminal">
@@ -80,13 +105,14 @@
         <p class="small">Solo se usan los mensajes que cada seguidor ha escrito en tu canal, y solo si tu canal aparece en el archivo público de logs.</p>
         <div class="row">
           <button id="btn-followers-refresh" class="btn ghost">Recargar seguidores</button>
-          <button id="btn-followers-back" class="btn ghost">Volver a mi expediente</button>
+          <button id="btn-followers-back" class="btn ghost">Volver al menú</button>
         </div>
       </div>
     </section>
 
     <!-- 3. Resultado -->
     <section id="screen-result" class="screen" hidden>
+      <button id="btn-back-top" class="btn back-top">← Atrás</button>
       <article class="file">
         <div class="file-head">
           <span>EXPEDIENTE Nº <b id="case-no"></b></span>
@@ -158,7 +184,7 @@
         <p class="small">Copia o descarga la imagen y pégala donde quieras: Twitch, Discord, WhatsApp, X… En el móvil, «Compartir…» la envía directamente a cualquier app.</p>
       </div>
       <div class="row">
-        <button id="btn-followers" class="btn">Modo streamer: buscar a mis seguidores</button>
+        <button id="btn-menu" class="btn">← Volver al menú</button>
         <button id="btn-back-followers" class="btn" hidden>← Volver a los seguidores</button>
         <button id="btn-logout" class="btn ghost">Cerrar sesión</button>
       </div>

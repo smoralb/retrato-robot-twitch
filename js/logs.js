@@ -1,4 +1,4 @@
-import { LOGS_BASE, LIMITS } from './config.js';
+import { LOGS_BASE, LIMITS, DEMO } from './config.js';
 
 async function getJson(url) {
   const res = await fetch(url);
@@ -78,4 +78,29 @@ export function parsePasted(text) {
       if (!m) return { text: line, channel: null, timestamp: null };
       return { text: m[3], channel: m[2] || null, timestamp: new Date(m[1].replace(' ', 'T')).toISOString() };
     });
+}
+
+const BOTS = /^(nightbot|streamelements|streamlabs|moobot|fossabot|wizebot|sery_bot|pajbot|supibot|commanderroot|streamholics)$|bot$/i;
+
+// Usuarios que han escrito en un canal archivado durante sus últimos días con logs,
+// ordenados por mensajes. Sirve de "seguidores" de ejemplo para el modo demo.
+export async function recentChatters(channel = DEMO.channel, days = DEMO.days) {
+  const list = await getJson(`${LOGS_BASE}/list?channel=${channel}`);
+  if (!list) throw new Error(`El canal «${channel}» no está en el archivo de logs.`);
+  const picked = (list.availableLogs || []).slice(0, days);
+  const users = new Map();
+  const dayLogs = await pool(picked, LIMITS.concurrency, ({ year, month, day }) =>
+    getJson(`${LOGS_BASE}/channel/${channel}/${year}/${month}/${day}?json`));
+  for (const day of dayLogs) {
+    for (const m of day?.messages || []) {
+      if (m.type !== 1 || !m.username || BOTS.test(m.username)) continue;
+      const u = users.get(m.username) || { user_id: m.tags?.['user-id'], user_login: m.username, user_name: m.displayName || m.username, count: 0, last: m.timestamp };
+      u.count++;
+      if (m.timestamp > u.last) u.last = m.timestamp;
+      users.set(m.username, u);
+    }
+  }
+  return [...users.values()]
+    .sort((a, b) => b.count - a.count)
+    .map((u) => ({ ...u, followed_at: u.last, note: `${u.count} mensajes · visto ${new Date(u.last).toLocaleDateString('es')}` }));
 }

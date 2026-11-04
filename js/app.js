@@ -1,6 +1,6 @@
-import { LIMITS } from './config.js';
+import { LIMITS, DEMO } from './config.js';
 import * as twitch from './twitch.js';
-import { fetchUserMessages, parsePasted } from './logs.js';
+import { fetchUserMessages, parsePasted, recentChatters } from './logs.js';
 import * as share from './share.js';
 import { analyze } from './analyzer.js';
 import { renderPortrait } from './portrait.js';
@@ -57,8 +57,9 @@ async function investigate() {
 function render(subject = state) {
   const profile = analyze(subject);
   const own = subject === state;
-  $('btn-followers').hidden = !own;
+  $('btn-menu').hidden = !own;
   $('btn-back-followers').hidden = own;
+  $('btn-back-top').textContent = own ? '← Volver al inicio' : '← Volver a los seguidores';
   const { stats, user } = profile;
 
   const ink = darken(profile.chatColor);
@@ -159,7 +160,7 @@ function renderFollowers() {
     const name = document.createElement('span');
     name.textContent = f.user_name;
     const since = document.createElement('small');
-    since.textContent = `desde ${new Date(f.followed_at).toLocaleDateString('es')}`;
+    since.textContent = f.note || `desde ${new Date(f.followed_at).toLocaleDateString('es')}`;
     li.append(name, since);
     const go = () => investigateFollower({ id: f.user_id, login: f.user_login });
     li.onclick = go;
@@ -175,8 +176,8 @@ function renderFollowers() {
   }
   $('followers-list').replaceChildren(...items);
   $('followers-info').textContent = hits.length > SHOWN
-    ? `${hits.length} coincidencias de ${state.followers.length} seguidores: se muestran las ${SHOWN} más recientes. Sigue escribiendo para afinar.`
-    : `${hits.length} de ${state.followers.length} seguidores cargados`;
+    ? `${hits.length} coincidencias de ${state.followers.length} ${state.source?.demo ? 'usuarios' : 'seguidores'}: se muestran las ${SHOWN} primeras. Sigue escribiendo para afinar.`
+    : `${hits.length} de ${state.followers.length} ${state.source?.demo ? `usuarios activos en #${state.source.login} (modo demo)` : 'seguidores cargados'}`;
 }
 
 async function openFollowers(reload = false) {
@@ -184,7 +185,9 @@ async function openFollowers(reload = false) {
     return twitch.login({ scopes: [twitch.FOLLOWERS_SCOPE], mode: 'followers' });
   }
   if (!state.user) state.user = await twitch.getMe(state.token);
-  if (!state.followers.length || reload) {
+  state.source = { login: state.user.login, id: state.user.id };
+  if (!state.followers.length || reload || state.demoLoaded) {
+    state.demoLoaded = false;
     show('loading');
     $('log').textContent = '';
     log('Pasando lista de seguidores…');
@@ -206,6 +209,20 @@ async function openFollowers(reload = false) {
   $('followers-search').focus();
 }
 
+async function openDemo() {
+  show('loading');
+  $('log').textContent = '';
+  log(`Reuniendo sospechosos del canal #${DEMO.channel} (últimos ${DEMO.days} días con logs)…`);
+  state.followers = await recentChatters();
+  if (!state.followers.length) throw new Error(`No hay actividad reciente en #${DEMO.channel}.`);
+  state.demoLoaded = true;
+  state.source = { login: DEMO.channel, id: null, demo: true };
+  $('followers-search').value = '';
+  renderFollowers();
+  show('followers');
+  $('followers-search').focus();
+}
+
 async function investigateFollower({ id, login }) {
   show('loading');
   $('log').textContent = '';
@@ -216,10 +233,14 @@ async function investigateFollower({ id, login }) {
     log(`Sujeto identificado: ${user.display_name}`);
     const [chatColor, channels] = await Promise.all([
       twitch.getChatColor(state.token, user.id).catch(() => null),
-      twitch.getChannels(state.token, [state.user.id]).catch(() => []),
+      (async () => {
+        const src = state.source;
+        if (!src.id) src.id = (await twitch.getUserByLogin(state.token, src.login))?.id;
+        return twitch.getChannels(state.token, [src.id]);
+      })().catch(() => []),
     ]);
     log('Interrogando a testigos (archivo de logs)…');
-    const logs = await fetchUserMessages(user.login, [state.user.login], log).catch((e) => {
+    const logs = await fetchUserMessages(user.login, [state.source.login], log).catch((e) => {
       log(`El archivo de logs no responde (${e.message})`);
       return { messages: [], moderation: [] };
     });
@@ -232,9 +253,17 @@ async function investigateFollower({ id, login }) {
   }
 }
 
-$('btn-followers').onclick = () => openFollowers().catch(fail);
+function showMenu() {
+  $('menu-name').textContent = state.user?.display_name || 'agente';
+  show('menu');
+}
+$('btn-menu').onclick = showMenu;
+$('btn-back-top').onclick = () => ($('btn-back-followers').hidden ? showMenu() : $('btn-back-followers').click());
+$('btn-menu-me').onclick = () => investigate().catch(fail);
+$('btn-menu-demo').onclick = () => openDemo().catch(fail);
+$('btn-menu-others').onclick = () => openFollowers().catch(fail);
 $('btn-followers-refresh').onclick = () => openFollowers(true).catch(fail);
-$('btn-followers-back').onclick = () => (state.ownDone ? render() : investigate().catch(fail));
+$('btn-followers-back').onclick = showMenu;
 $('btn-back-followers').onclick = () => { renderFollowers(); show('followers'); };
 $('followers-search').oninput = renderFollowers;
 
@@ -320,7 +349,10 @@ $('btn-logout').onclick = async () => {
   try {
     state.token = twitch.consumeRedirect() || twitch.storedToken();
     if (state.token && mode === 'followers') await openFollowers();
-    else if (state.token) await investigate();
+    else if (state.token) {
+      state.user = await twitch.getMe(state.token);
+      showMenu();
+    }
   } catch (err) {
     fail(err);
   }

@@ -197,3 +197,15 @@ a.btn { text-decoration: none; display: inline-block; }
 .followers li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-bottom: 1px dashed var(--paper-dark); cursor: pointer; }
 .followers li:hover, .followers li:focus { background: rgba(179, 38, 30, .12); outline: none; }
 .followers small { opacity: .6; white-space: nowrap; }
+.menu-options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.menu-option { font: inherit; text-align: left; background: #f7f2e6; border: 2px solid var(--ink); padding: 18px; cursor: pointer; display: flex; flex-direction: column; gap: 8px; color: var(--ink); }
+.menu-option:hover { background: var(--ink); color: var(--paper); }
+.menu-option b { font-size: 1.15rem; text-transform: uppercase; letter-spacing: .04em; }
+.menu-option span { font-size: .9rem; }
+.menu-option small { font-size: .72rem; opacity: .65; }
+@media (max-width: 600px) { .menu-options { grid-template-columns: 1fr; } }
+#screen-menu .lead { text-align: center; }
+.demo-link { text-align: center; margin-top: 20px; }
+button.link { font: inherit; background: none; border: 0; padding: 0; color: var(--red); text-decoration: underline; cursor: pointer; }
+.menu-option.demo { grid-column: 1 / -1; border-style: dashed; }
+.back-top { margin-bottom: 12px; background: var(--paper); border-color: var(--paper); color: var(--ink); }
