@@ -359,7 +359,7 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
   // ---- Antecedentes (timeouts y bans del archivo de logs)
   const rec = criminalRecord(moderation);
   let record;
-  if (!rec.timeouts && !rec.bans) record = V('clean', F.clean);
+  if (!rec.timeouts && !rec.bans) record = V(n ? 'clean' : 'nodata_record', n ? F.clean : F.nodata_record);
   else {
     const parts = [];
     if (rec.timeouts) parts.push(V('rec_timeouts', F.rec_timeouts(rec.timeouts, duration(rec.seconds))));
@@ -371,6 +371,8 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
   else if (rec.timeouts >= 3) traits.push(V('rec3', F.rec3));
   else if (rec.timeouts) traits.push(V('rec1', F.rec1));
   if (rec.longest >= 86400) traits.push(V('longTimeout', F.longTimeout(duration(rec.longest))));
+  if (user?.broadcaster_type === 'partner') traits.push(V('streamer', F.streamer_partner));
+  else if (user?.broadcaster_type === 'affiliate') traits.push(V('streamer', F.streamer_affiliate));
   if (stats.exclaimPct > 35) traits.push(V('exclaim', F.exclaim));
   if (has(KID_GAMES) >= 2) traits.push(V('g_kid', F.g_kid));
   if (has(OLD_GAMES) >= 2) traits.push(V('g_old', F.g_old));
@@ -383,7 +385,7 @@ export function analyze({ user, follows = [], channels = [], messages = [], chat
   if (age < 18) traits.push(V('age_young', F.age_young));
   else if (age > 40) traits.push(V('age_old', F.age_old));
   traits.push(...alias.jokes);
-  if (!traits.length) traits.push(V('gray', F.gray));
+  if (!traits.length) traits.push(n ? V('gray', F.gray) : V('nodata', F.nodata_trait));
 
   const danger = clamp(Math.round(rec.timeouts * 4 + rec.bans * 20 + alias.danger + stats.capsPct * 0.6 + stats.swearPer1k * 1.2 + stats.nightPct * 0.4 + rate(SLANG.twitch) * 300 + (n > 2000 ? 15 : 0)), 3, 99);
 

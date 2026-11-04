@@ -205,10 +205,11 @@ a.btn { text-decoration: none; display: inline-block; }
 .menu-option small { font-size: .72rem; opacity: .65; }
 @media (max-width: 600px) { .menu-options { grid-template-columns: 1fr; } }
 #screen-menu .lead { text-align: center; }
-.demo-link { text-align: center; margin-top: 20px; }
 button.link { font: inherit; background: none; border: 0; padding: 0; color: var(--red); text-decoration: underline; cursor: pointer; }
-.menu-option.demo { grid-column: 1 / -1; border-style: dashed; }
 .back-top { margin-bottom: 12px; background: var(--paper); border-color: var(--paper); color: var(--ink); }
 
 /* Cerrar sesión: siempre visible arriba a la derecha */
 #btn-logout { position: fixed; top: 12px; right: 12px; z-index: 50; padding: 8px 14px; font-size: .85rem; background: var(--paper); color: var(--ink); }
+
+
+.nodata-note { margin: 8px 0 0; padding: 8px 10px; border: 1px dashed var(--ink); font-size: .78rem; line-height: 1.35; background: #f7f2e6; }

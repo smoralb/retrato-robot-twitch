@@ -1,6 +1,6 @@
-import { LIMITS, DEMO } from './config.js';
+import { LIMITS } from './config.js';
 import * as twitch from './twitch.js';
-import { fetchUserMessages, parsePasted, recentChatters } from './logs.js';
+import { fetchUserMessages, parsePasted } from './logs.js';
 import * as share from './share.js';
 import { analyze } from './analyzer.js';
 import { renderPortrait } from './portrait.js';
@@ -88,6 +88,8 @@ function render(subject = state) {
   $('wanted-stamp').classList.toggle('meh', clean);
   $('wanted-stars').hidden = clean;
   $('msg-count').textContent = stats.messages;
+  $('nodata-note').hidden = stats.messages > 0;
+  $('nodata-note').textContent = F.nodata_notice;
   $('profiles-joke').textContent = choose(F.profiles, `${user?.login || 'anon'}:profiles`);
   $('f-alias').textContent = user ? `${user.display_name}${user.description ? ` — “${user.description}”` : ''}` : '—';
   $('f-age').textContent = `${profile.ageRange[0]}–${profile.ageRange[1]} años${profile.ageSource ? ` (${profile.ageSource})` : ''}`;
@@ -169,8 +171,8 @@ function renderFollowers() {
   }
   $('followers-list').replaceChildren(...items);
   $('followers-info').textContent = hits.length > SHOWN
-    ? `${hits.length} coincidencias de ${state.followers.length} ${state.source?.demo ? 'usuarios' : 'seguidores'}: se muestran las ${SHOWN} primeras. Sigue escribiendo para afinar.`
-    : `${hits.length} de ${state.followers.length} ${state.source?.demo ? `usuarios activos en #${state.source.login} (modo demo)` : 'seguidores cargados'}`;
+    ? `${hits.length} coincidencias de ${state.followers.length} seguidores: se muestran las ${SHOWN} primeras. Sigue escribiendo para afinar.`
+    : `${hits.length} de ${state.followers.length} seguidores cargados`;
 }
 
 async function openFollowers(reload = false) {
@@ -179,8 +181,7 @@ async function openFollowers(reload = false) {
   }
   if (!state.user) state.user = await twitch.getMe(state.token);
   state.source = { login: state.user.login, id: state.user.id };
-  if (!state.followers.length || reload || state.demoLoaded) {
-    state.demoLoaded = false;
+  if (!state.followers.length || reload) {
     show('loading');
     $('log').textContent = '';
     log('Pasando lista de seguidores…');
@@ -202,19 +203,6 @@ async function openFollowers(reload = false) {
   $('followers-search').focus();
 }
 
-async function openDemo() {
-  show('loading');
-  $('log').textContent = '';
-  log(`Reuniendo sospechosos del canal #${DEMO.channel} (últimos ${DEMO.days} días con logs)…`);
-  state.followers = await recentChatters();
-  if (!state.followers.length) throw new Error(`No hay actividad reciente en #${DEMO.channel}.`);
-  state.demoLoaded = true;
-  state.source = { login: DEMO.channel, id: null, demo: true };
-  $('followers-search').value = '';
-  renderFollowers();
-  show('followers');
-  $('followers-search').focus();
-}
 
 async function investigateFollower({ id, login }) {
   show('loading');
@@ -247,12 +235,12 @@ async function investigateFollower({ id, login }) {
 }
 
 function showMenu() {
+  $('error').hidden = true;
   $('menu-name').textContent = state.user?.display_name || 'agente';
   show('menu');
 }
 $('btn-back-top').onclick = () => ($('btn-back-followers').hidden ? showMenu() : $('btn-back-followers').click());
 $('btn-menu-me').onclick = () => investigate().catch(fail);
-$('btn-menu-demo').onclick = () => openDemo().catch(fail);
 $('btn-menu-others').onclick = () => openFollowers().catch(fail);
 $('btn-followers-refresh').onclick = () => openFollowers(true).catch(fail);
 $('btn-followers-back').onclick = showMenu;

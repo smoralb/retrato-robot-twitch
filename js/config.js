@@ -18,7 +18,3 @@ export const LIMITS = {
   concurrency: 4,
   maxFollowers: 5000,   // seguidores a cargar en el modo streamer
 };
-
-// Modo demo del buscador: canal del archivo de logs del que sacar usuarios activos.
-// Debe aparecer en https://logs.ivr.fi/channels (los canales grandes españoles no suelen estar).
-export const DEMO = { channel: 'elded', days: 14 };

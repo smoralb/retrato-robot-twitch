@@ -666,4 +666,33 @@ export const F = {
     "Ni una palabra. Un caso de manual.",
     "No ha dicho nada comprometedor. De momento.",
   ],
+
+  // ---------------------------------------------------------------- sin mensajes en el archivo
+  nodata_record: [
+    "Sin datos: no hay logs de este usuario, así que no sabemos si es un santo o un fugitivo",
+    "Sin datos de moderación: el archivo no cubre sus canales",
+    "Expediente en blanco. No porque sea inocente, sino porque nadie lo vigila",
+    "No consta. Los mods de sus canales no nos han pasado el historial",
+    "Sin información: o es muy limpio o muy esquivo",
+  ],
+  nodata_trait: [
+    "Sin testimonios: el sospechoso habla, pero en sitios que no tenemos pinchados",
+    "Su chat no aparece en el archivo. Retrato hecho a ojo y con mala leche",
+    "Sin mensajes registrados: este retrato es pura imaginación policial",
+    "Perfil construido solo con su ficha pública. Faltan pruebas, sobra imaginación",
+    "El archivo no lo conoce. El retrato, tampoco, pero se defiende",
+  ],
+  streamer_partner: [
+    "Partner de Twitch: cobra por hacer lo que otros hacen gratis y sin público",
+    "Streamer partner: su sofá ya tiene sponsor",
+    "Es partner. Su gran dilema: ¿suscripciones o dignidad?",
+    "Partner de Twitch, o sea, un trabajador autónomo de los emotes",
+  ],
+  streamer_affiliate: [
+    "Afiliado de Twitch: tiene un botón de suscribirse y mucha esperanza",
+    "Afiliado: monetiza, o al menos lo intenta con orgullo",
+    "Afiliado de Twitch: en la parrilla de salida del éxito (lleva años allí)",
+    "Streamer afiliado: sus bits caben en un bolsillo, su ego no",
+  ],
+  nodata_notice: "No hay mensajes de este usuario en el archivo público de logs, que solo cubre unos 880 canales y casi ningún canal grande en español. Este retrato se basa solo en su perfil: sin huellas del chat.",
 };
